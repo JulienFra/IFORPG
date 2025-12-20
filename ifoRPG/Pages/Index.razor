@@ -1,0 +1,99 @@
+@page "/"
+@using ifoRPG.Models
+
+<div class="game-container" @onkeydown="GererClavier" tabindex="0">
+    <div class="status-bar">
+        <h3>Année @EtageActuel - @(DansUneSalle ? $"Salle de {SalleActuelle.Nom}" : "Couloir Principal")</h3>
+        <p>Cours validés : @Joueur.CoursValides / 3</p>
+    </div>
+
+    <div class="grille">
+        @for (int y = 0; y < Hauteur; y++) {
+            <div class="rangee">
+                @for (int x = 0; x < Largeur; x++) {
+                    var curX = x; var curY = y;
+                    <div class="cellule @GetCellCss(curX, curY)">
+                        @if (Joueur.X == x && Joueur.Y == y) { <span class="avatar">🎓</span> }
+                        @if (DansUneSalle && SalleActuelle.Prof.X == x && SalleActuelle.Prof.Y == y) { <span class="avatar">👨‍🏫</span> }
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    @if (AfficherQCM) {
+        <div class="modal-qcm">
+            <h4>Examen de @SalleActuelle.Prof.Matiere</h4>
+            <p>@SalleActuelle.Prof.QuestionQCM</p>
+            @foreach (var opt in SalleActuelle.Prof.Options) {
+                <button @onclick="() => VerifierReponse(opt)">@opt</button>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private Hero Joueur = new Hero { X = 5, Y = 5, Nom = "Étudiant" };
+    private List<Salle> LesSalles = new();
+    private Salle SalleActuelle;
+    private bool DansUneSalle = false;
+    private bool AfficherQCM = false;
+    private int EtageActuel = 1;
+    private int Largeur = 11, Hauteur = 8;
+
+    protected override void OnInitialized() {
+        // Création des 3 profs/portes pour l'étage [cite: 12]
+        LesSalles = new List<Salle> {
+            new Salle { Nom = "POO", PorteRetourX = 2, Prof = new Professeur { Nom = "M. Kairis", Matiere = "C#", X = 5, Y = 2, QuestionQCM = "C'est quoi l'héritage ?", Options = new() {"Un don", "Un lien de parenté entre classes", "Un bug"}, IndexCorrect = 1 }},
+            new Salle { Nom = "Réseau", PorteRetourX = 5, Prof = new Professeur { Nom = "M. Reseau", Matiere = "Infrastructure", X = 5, Y = 2, QuestionQCM = "C'est quoi une IP ?", Options = new() {"Une adresse", "Un gâteau", "Un logiciel"}, IndexCorrect = 0 }},
+            new Salle { Nom = "Math", PorteRetourX = 8, Prof = new Professeur { Nom = "Mme. Logique", Matiere = "Mathématiques", X = 5, Y = 2, QuestionQCM = "1 + 1 en binaire ?", Options = new() {"2", "11", "10"}, IndexCorrect = 2 }}
+        };
+    }
+
+    private void GererClavier(KeyboardEventArgs e) {
+        if (AfficherQCM) return;
+        Joueur.Deplacer(e.Key.ToLower(), Largeur, Hauteur);
+        
+        if (!DansUneSalle) {
+            // Vérifier si on entre dans une porte (Y=0)
+            var salle = LesSalles.FirstOrDefault(s => s.PorteRetourX == Joueur.X && Joueur.Y == 0 && !s.EstReussie);
+            if (salle != null) {
+                SalleActuelle = salle;
+                DansUneSalle = true;
+                Joueur.X = 5; Joueur.Y = 7; // Position de départ dans la salle
+            }
+        } else {
+            // Vérifier si on parle au prof
+            if (Joueur.X == SalleActuelle.Prof.X && Joueur.Y == SalleActuelle.Prof.Y) {
+                AfficherQCM = true;
+            }
+            // Vérifier si on sort par la porte (Y=7)
+            if (Joueur.Y == 7) {
+                DansUneSalle = false;
+                Joueur.Y = 1; // Repositionne devant la porte dans le couloir
+            }
+        }
+    }
+
+    private void VerifierReponse(string rep) {
+        if (rep == SalleActuelle.Prof.Options[SalleActuelle.Prof.IndexCorrect]) {
+            SalleActuelle.EstReussie = true;
+            Joueur.CoursValides++;
+            AfficherQCM = false;
+            DansUneSalle = false; // Sortie automatique après réussite
+            Joueur.Y = 1; 
+        } else {
+            AfficherQCM = false; // Echec : on peut recommencer en reparlant au prof
+        }
+    }
+
+    private string GetCellCss(int x, int y) {
+        if (!DansUneSalle) {
+            if (y == 0 && LesSalles.Any(s => s.PorteRetourX == x)) return "porte";
+            if (x == 10 && y == 7 && Joueur.CoursValides == 3) return "escalier";
+        } else {
+            if (y == 7 && x == 5) return "porte-retour";
+        }
+        return "sol";
+    }
+}
