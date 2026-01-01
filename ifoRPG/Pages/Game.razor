@@ -1,0 +1,275 @@
+@page "/game"
+@using ifoRPG.Models
+@using Microsoft.AspNetCore.Components.Web
+
+<h3>ifoRPG</h3>
+
+<div class="game-layout">
+
+    <!-- INVENTAIRE -->
+    <div class="left-panel">
+        <p><b>Inventaire</b></p>
+
+        @if (!player.Inventory.Items.Any())
+        {
+            <p>(vide)</p>
+        }
+        else
+        {
+            @foreach (var item in player.Inventory.Items)
+            {
+                <p>📦 @item.Name</p>
+            }
+        }
+    </div>
+
+    <!-- MAP -->
+    <div class="center-panel">
+        <div class="map"
+             tabindex="0"
+             @onkeydown="HandleKey"
+             @ref="gameDiv">
+
+            @for (int y = 0; y < map.Height; y++)
+            {
+                <div class="row">
+                    @for (int x = 0; x < map.Width; x++)
+                    {
+                        if (player.X == x && player.Y == y)
+                        {
+                            <span class="tile player">🙂</span>
+                        }
+                        else if (!chatGPTTaken &&
+                                 x == map.ChatGPTX &&
+                                 y == map.ChatGPTY)
+                        {
+                            <span class="tile">🤖</span>
+                        }
+                        else if (!boss.Defeated &&
+                                 x == map.BossX &&
+                                 y == map.BossY)
+                        {
+                            <span class="tile">👹</span>
+                        }
+                        else if (stairsUnlocked &&
+                                 x == map.StairsX &&
+                                 y == map.StairsY)
+                        {
+                            <span class="tile">⬇️</span>
+                        }
+                        else
+                        {
+                            <span class="tile">.</span>
+                        }
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- QUEST BOOK + QCM -->
+    <div class="right-panel">
+
+        <!-- QUEST BOOK -->
+        <div class="quest-book">
+            <p><b>Quest Book</b></p>
+
+            @if (!floor1Quest.Completed)
+            {
+                <p>@floor1Quest.Description</p>
+            }
+            else
+            {
+                <p style="color: green;">✅ Étape 1 validée</p>
+            }
+        </div>
+
+        <!-- BOSS -->
+        @if (showBoss)
+        {
+            <div class="boss">
+                <h3>👹 @boss.Name</h3>
+
+                @if (player.Inventory.HasChatGPT())
+                {
+                    <button @onclick="CheatWithChatGPT">
+                        🤖 Tricher avec ChatGPT
+                    </button>
+                }
+
+                <p>@boss.CurrentQuestion.Text</p>
+
+                @for (int i = 0; i < boss.CurrentQuestion.Answers.Count; i++)
+                {
+                    int index = i;
+                    <button @onclick="() => AnswerBoss(index)">
+                        @boss.CurrentQuestion.Answers[i]
+                    </button>
+                }
+
+                <p>@bossResult</p>
+            </div>
+        }
+    </div>
+
+</div>
+
+@code {
+    Map map = new Map(10, 10);
+    Player player = new Player(0, 0);
+
+    Quest floor1Quest = new Quest("Réussir étage 1");
+
+    Boss boss = CreateBoss();
+
+    bool showBoss = false;
+    bool stairsUnlocked = false;
+    bool chatGPTTaken = false;
+    string bossResult = "";
+
+    ElementReference gameDiv;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            await gameDiv.FocusAsync();
+    }
+
+    void HandleKey(KeyboardEventArgs e)
+    {
+        if (showBoss)
+            return;
+
+        switch (e.Key)
+        {
+            case "z":
+            case "ArrowUp":
+                player.Move(0, -1, map);
+                break;
+            case "s":
+            case "ArrowDown":
+                player.Move(0, 1, map);
+                break;
+            case "q":
+            case "ArrowLeft":
+                player.Move(-1, 0, map);
+                break;
+            case "d":
+            case "ArrowRight":
+                player.Move(1, 0, map);
+                break;
+        }
+
+        CheckEvents();
+    }
+
+    void CheckEvents()
+    {
+        // Pickup ChatGPT
+        if (!chatGPTTaken &&
+            player.X == map.ChatGPTX &&
+            player.Y == map.ChatGPTY)
+        {
+            player.Inventory.Add(new ChatGPTItem());
+            chatGPTTaken = true;
+        }
+
+        // Boss
+        if (!boss.Defeated &&
+            player.X == map.BossX &&
+            player.Y == map.BossY)
+        {
+            showBoss = true;
+        }
+
+        // Stairs
+        if (stairsUnlocked &&
+            player.X == map.StairsX &&
+            player.Y == map.StairsY)
+        {
+            bossResult = "➡️ Passage à l'étage suivant (à venir)";
+        }
+    }
+
+    void AnswerBoss(int index)
+    {
+        bool finished = boss.Answer(index);
+
+        if (finished)
+        {
+            if (boss.Defeated)
+            {
+                WinBoss();
+            }
+            else
+            {
+                ResetFloor();
+            }
+
+            showBoss = false;
+        }
+    }
+
+    void CheatWithChatGPT()
+    {
+        player.Inventory.UseChatGPT();
+        WinBoss();
+        showBoss = false;
+    }
+
+    void WinBoss()
+    {
+        bossResult = "✅ Boss réussi !";
+        stairsUnlocked = true;
+        floor1Quest.Complete();
+    }
+
+    void ResetFloor()
+    {
+        player = new Player(0, 0);
+        boss = CreateBoss();
+        stairsUnlocked = false;
+        chatGPTTaken = false;
+        floor1Quest.Reset();
+    }
+
+    static Boss CreateBoss()
+    {
+        return new Boss(
+            "Boss de l'étage 1",
+            new List<Question>
+            {
+                new Question(
+                    "La POO permet :",
+                    new List<string>
+                    {
+                        "De structurer le code",
+                        "De ralentir les programmes",
+                        "D'éviter toutes les erreurs"
+                    },
+                    0
+                ),
+                new Question(
+                    "Une classe sert à :",
+                    new List<string>
+                    {
+                        "Créer des objets",
+                        "Afficher une interface",
+                        "Stocker des fichiers"
+                    },
+                    0
+                ),
+                new Question(
+                    "L'encapsulation permet :",
+                    new List<string>
+                    {
+                        "De cacher l'implémentation",
+                        "D'exécuter plus vite",
+                        "De supprimer les bugs"
+                    },
+                    0
+                )
+            }
+        );
+    }
+}
