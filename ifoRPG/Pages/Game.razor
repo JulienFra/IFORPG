@@ -25,10 +25,7 @@
 
     <!-- MAP -->
     <div class="center-panel">
-        <div class="map"
-             tabindex="0"
-             @onkeydown="HandleKey"
-             @ref="gameDiv">
+        <div class="map" tabindex="0" @onkeydown="HandleKey" @ref="gameDiv">
 
             @for (int y = 0; y < map.Height; y++)
             {
@@ -40,26 +37,45 @@
                             <span class="tile player">🙂</span>
                         }
                         else if (!chatGPTTaken &&
-                                 x == map.ChatGPTX &&
-                                 y == map.ChatGPTY)
+                        x == map.ChatGPTX &&
+                        y == map.ChatGPTY)
                         {
                             <span class="tile">🤖</span>
                         }
                         else if (!boss.Defeated &&
-                                 x == map.BossX &&
-                                 y == map.BossY)
+                        x == map.BossX &&
+                        y == map.BossY)
                         {
                             <span class="tile">👹</span>
                         }
                         else if (stairsUnlocked &&
-                                 x == map.StairsX &&
-                                 y == map.StairsY)
+                        x == map.StairsX &&
+                        y == map.StairsY)
                         {
                             <span class="tile">⬇️</span>
                         }
                         else
                         {
-                            <span class="tile">.</span>
+                            var currentTile = map.Tiles[x, y];
+                            @if (currentTile.Type == TileType.Window)
+                            {
+                                <span class="tile">🪟</span>
+                            }
+                            else if (currentTile.Type == TileType.Bench)
+                            {
+
+                                <span class="tile">🪑</span>
+                            }
+                            else if (currentTile.Type == TileType.PC)
+                            {
+
+                                <span class="tile">💻</span>
+                            }
+                            else
+                            {
+
+                                <span class="tile">.</span>
+                            }
                         }
                     }
                 </div>
@@ -115,12 +131,12 @@
 </div>
 
 @code {
-    Map map = new Map(10, 10);
-    Player player = new Player(0, 0);
+    int currentFloor = 1;
+    Map map = new Map(10, 10, 1); Player player = new Player(0, 0);
 
     Quest floor1Quest = new Quest("Réussir étage 1");
 
-    Boss boss = CreateBoss();
+    Boss? boss;
 
     bool showBoss = false;
     bool stairsUnlocked = false;
@@ -128,6 +144,10 @@
     string bossResult = "";
 
     ElementReference gameDiv;
+    protected override void OnInitialized()
+    {
+        boss = Boss.CreateBossForFloor(currentFloor);
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -167,8 +187,8 @@
     {
         // Pickup ChatGPT
         if (!chatGPTTaken &&
-            player.X == map.ChatGPTX &&
-            player.Y == map.ChatGPTY)
+        player.X == map.ChatGPTX &&
+        player.Y == map.ChatGPTY)
         {
             player.Inventory.Add(new ChatGPTItem());
             chatGPTTaken = true;
@@ -176,38 +196,63 @@
 
         // Boss
         if (!boss.Defeated &&
-            player.X == map.BossX &&
-            player.Y == map.BossY)
+        player.X == map.BossX &&
+        player.Y == map.BossY)
         {
             showBoss = true;
         }
 
         // Stairs
         if (stairsUnlocked &&
-            player.X == map.StairsX &&
-            player.Y == map.StairsY)
+        player.X == map.StairsX &&
+        player.Y == map.StairsY)
         {
-            bossResult = "➡️ Passage à l'étage suivant (à venir)";
+            NextFloor();
         }
+    }
+
+    void NextFloor()
+    {
+        currentFloor++; // On passe à l'étage 2, 3, etc.
+
+        // On crée la map AVEC le nouvel étage
+        map = new Map(10, 10, currentFloor);
+
+        player = new Player(0, 0);
+        boss = Boss.CreateBossForFloor(currentFloor);
+
+        // On reset les drapeaux pour le nouvel étage
+        stairsUnlocked = false;
+        chatGPTTaken = false;
+        showBoss = false;
+        bossResult = $"Bienvenue à l'étage {currentFloor} !";
+
+        StateHasChanged();
     }
 
     void AnswerBoss(int index)
     {
-        bool finished = boss.Answer(index);
+        // 1. On enregistre la réponse dans l'objet boss
+        bool finished = boss!.Answer(index);
 
+        // 2. Si le QCM est fini (après 3 questions)
         if (finished)
         {
             if (boss.Defeated)
             {
+                // IMPORTANT : On appelle WinBoss ici pour ouvrir la porte
                 WinBoss();
             }
             else
             {
+                // Si raté, on recommence l'étage
                 ResetFloor();
             }
 
-            showBoss = false;
+            showBoss = false; // On ferme la fenêtre de dialogue
         }
+
+        StateHasChanged(); // On force le rafraîchissement
     }
 
     void CheatWithChatGPT()
@@ -219,57 +264,19 @@
 
     void WinBoss()
     {
-        bossResult = "✅ Boss réussi !";
-        stairsUnlocked = true;
-        floor1Quest.Complete();
+        bossResult = "✅ Examen réussi ! La sortie est ouverte.";
+        stairsUnlocked = true; // C'est CA qui fait apparaître la flèche ⬇️
+        boss!.Defeated = true;
+        StateHasChanged();
     }
 
     void ResetFloor()
     {
         player = new Player(0, 0);
-        boss = CreateBoss();
-        stairsUnlocked = false;
+        boss = Boss.CreateBossForFloor(currentFloor); stairsUnlocked = false;
         chatGPTTaken = false;
         floor1Quest.Reset();
     }
 
-    static Boss CreateBoss()
-    {
-        return new Boss(
-            "Boss de l'étage 1",
-            new List<Question>
-            {
-                new Question(
-                    "La POO permet :",
-                    new List<string>
-                    {
-                        "De structurer le code",
-                        "De ralentir les programmes",
-                        "D'éviter toutes les erreurs"
-                    },
-                    0
-                ),
-                new Question(
-                    "Une classe sert à :",
-                    new List<string>
-                    {
-                        "Créer des objets",
-                        "Afficher une interface",
-                        "Stocker des fichiers"
-                    },
-                    0
-                ),
-                new Question(
-                    "L'encapsulation permet :",
-                    new List<string>
-                    {
-                        "De cacher l'implémentation",
-                        "D'exécuter plus vite",
-                        "De supprimer les bugs"
-                    },
-                    0
-                )
-            }
-        );
-    }
+   
 }
