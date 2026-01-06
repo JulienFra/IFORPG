@@ -6,7 +6,7 @@ public class Boss
     public List<Question> Questions { get; }
     public int CurrentQuestionIndex { get; private set; }
     public int CorrectAnswers { get; private set; }
-    public bool Defeated { get; private set; }
+    public bool Defeated { get; set; }
 
     public Boss(string name, List<Question> questions)
     {
@@ -28,7 +28,7 @@ public class Boss
 
         if (CurrentQuestionIndex >= Questions.Count)
         {
-            Defeated = CorrectAnswers >= 2; // 2 bonnes réponses sur 3
+            Defeated = CorrectAnswers >= 1; // une seule question
             return true; // fin du boss
         }
 
@@ -39,6 +39,22 @@ public class Boss
         CurrentQuestionIndex = 0;
         CorrectAnswers = 0;
         Defeated = false;
+    }
+
+ public static Boss CreateBossForFloor(int floor)
+    {
+        return floor switch
+        {
+            1 => new Boss("M. Durant (POO)", new List<Question> {
+new Question("La POO signifie ?", new List<string> {"Programmation Orientée Objet", "Petit Ours Orgueilleux"}, 0)
+}),
+            2 => new Boss("Mme. Martin (SQL)", new List<Question> {
+new Question("Que signifie SQL ?", new List<string> {"Structured Query Language", "Simple Query Language"}, 0)
+}),
+            _ => new Boss($"Prof Étage {floor}", new List<Question> {
+new Question("Prêt pour la suite ?", new List<string> {"Oui", "Non"}, 0)
+})
+        };
     }
 
 }
