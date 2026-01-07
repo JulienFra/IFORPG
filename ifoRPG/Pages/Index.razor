@@ -1,0 +1,46 @@
+@page "/"
+@inject NavigationManager NavManager
+
+<div class="menu-container">
+    <button class="play-button" @onclick="StartGame">
+        🎮 JOUER À IFORPG
+    </button>
+</div>
+
+@code {
+    void StartGame()
+    {
+        NavManager.NavigateTo("game");
+    }
+}
+
+<style>
+    .menu-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 80vh; /* Centre verticalement sur la page */
+    }
+
+    .play-button {
+        padding: 40px 80px;
+        font-size: 3rem;
+        font-weight: bold;
+        cursor: pointer;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+        transition: transform 0.2s, background-color 0.2s;
+    }
+
+    .play-button:hover {
+        background-color: #45a049;
+        transform: scale(1.1); /* Grossit légèrement au survol */
+    }
+
+    .play-button:active {
+        transform: scale(0.95);
+    }
+</style>

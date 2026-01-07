@@ -6,7 +6,6 @@
 
 <div class="game-layout">
 
-    <!-- INVENTAIRE -->
     <div class="left-panel">
         <p><b>Inventaire</b></p>
 
@@ -23,12 +22,8 @@
         }
     </div>
 
-    <!-- MAP -->
     <div class="center-panel">
-        <div class="map"
-             tabindex="0"
-             @onkeydown="HandleKey"
-             @ref="gameDiv">
+        <div class="map" tabindex="0" @onkeydown="HandleKey" @ref="gameDiv">
 
             @for (int y = 0; y < map.Height; y++)
             {
@@ -40,40 +35,63 @@
                             <span class="tile">🙂</span>
                         }
                         // ESCALIER DE MONTÉE (ÉTAGE 1 ET 2 UNIQUEMENT)
-                        else if (inCorridor &&
-                                 currentFloor < 3 &&
-                                 x == map.StairsX &&
-                                 y == map.StairsY)
+                        else if (state.InCorridor &&
+                        state.CurrentFloor < 3 &&
+                        x == map.StairsX &&
+                        y == map.StairsY)
                         {
-                            if (AllRoomsCompleted())
-                                { <span class="tile">⬆️</span> }
+                            if (state.FloorsProgress[state.CurrentFloor].All(r => r))
+                            {
+                                <span class="tile">⬆️</span>
+                            }
                             else
-                                { <span class="tile">🚫⬆️</span> }
+                            {
+                                <span class="tile">🚫⬆️</span>
+                            }
                         }
                         // ESCALIER DE DESCENTE (HAUT GAUCHE)
-                        else if (inCorridor &&
-                                 currentFloor > 1 &&
-                                 x == 0 && y == 0)
+                        else if (state.InCorridor &&
+                        state.CurrentFloor > 1 &&
+                        x == 0 && y == 0)
                         {
                             <span class="tile">⬇️</span>
                         }
-                        else if (inCorridor &&
-                                 doors.Any(d => d.x == x && d.y == y))
+                        // PORTES DU COULOIR (X: 2, 5, 8 sur la ligne Y: 4)
+                        else if (state.InCorridor && (x == 2 || x == 5 || x == 8) && y == 4)
                         {
                             <span class="tile">🚪</span>
                         }
-                        else if (!inCorridor &&
-                                 x == exitDoorInRoom.x &&
-                                 y == exitDoorInRoom.y)
+                        // PORTE DE SORTIE DANS LA SALLE
+                        else if (!state.InCorridor &&
+                        x == state.ExitDoorInRoom.x &&
+                        y == state.ExitDoorInRoom.y)
                         {
                             <span class="tile">🚪</span>
                         }
-                        else if (!inCorridor &&
-                                 !CurrentRoomsCompleted()[currentRoom] &&
-                                 x == map.BossX &&
-                                 y == map.BossY)
+                        // BOSS
+                        else if (!state.InCorridor &&
+                        !state.FloorsProgress[state.CurrentFloor][state.CurrentRoomIndex] &&
+                        x == map.BossX &&
+                        y == map.BossY)
                         {
                             <span class="tile">👹</span>
+                        }
+                        @* AFFICHAGE DES MEUBLES (UNIQUEMENT HORS COULOIR) *@
+                        else if (!state.InCorridor && map.Tiles[x, y].Type == TileType.PC)
+                        {
+                            <span class="tile">💻</span>
+                        }
+                        else if (!state.InCorridor && map.Tiles[x, y].Type == TileType.Bench)
+                        {
+                            <span class="tile">🗄️</span>
+                        }
+                        else if (!state.InCorridor && map.Tiles[x, y].Type == TileType.Window)
+                        {
+                            <span class="tile">🪟</span>
+                        }
+                        else if (!state.InCorridor && map.Tiles[x, y].Type == TileType.Board)
+                        {
+                            <span class="tile">👨‍🏫</span>
                         }
                         else
                         {
@@ -85,34 +103,33 @@
         </div>
     </div>
 
-    <!-- QUEST BOOK + BOSS -->
     <div class="right-panel">
 
         <div class="quest-book">
             <p><b>Quest Book</b></p>
-            <p>Étage @currentFloor</p>
+            <p>Étage @state.CurrentFloor</p>
             <ul>
                 @for (int i = 0; i < 3; i++)
                 {
                     <li>
                         Salle @(i + 1) :
-                        @(CurrentRoomsCompleted()[i] ? "✅" : "❌")
+                        @(state.FloorsProgress[state.CurrentFloor][i] ? "✅" : "❌")
                     </li>
                 }
             </ul>
         </div>
 
-        @if (!inCorridor && showBoss && boss!.CurrentQuestion != null)
+        @if (!state.InCorridor && state.ShowBoss && state.CurrentBoss?.CurrentQuestion != null)
         {
             <div class="boss">
-                <h3>👹 @boss.Name</h3>
-                <p>@boss.CurrentQuestion.Text</p>
+                <h3>👹 @state.CurrentBoss.Name</h3>
+                <p>@state.CurrentBoss.CurrentQuestion.Text</p>
 
-                @for (int i = 0; i < boss.CurrentQuestion.Answers.Count; i++)
+                @for (int i = 0; i < state.CurrentBoss.CurrentQuestion.Answers.Count; i++)
                 {
                     int index = i;
                     <button @onclick="() => AnswerBoss(index)">
-                        @boss.CurrentQuestion.Answers[i]
+                        @state.CurrentBoss.CurrentQuestion.Answers[index]
                     </button>
                 }
             </div>
@@ -121,32 +138,12 @@
 </div>
 
 @code {
-    int currentFloor = 1;
-    int currentRoom = -1;
-    bool inCorridor = true;
-
-    Dictionary<int, bool[]> floorsProgress = new()
-    {
-        { 1, new bool[3] },
-        { 2, new bool[3] },
-        { 3, new bool[3] }
-    };
-
-    Map map = new Map(10, 10, 1);
-    Player player = new Player(0, 0);
-
-    Boss? boss;
-    bool showBoss = false;
-
-    (int x, int y)[] doors =
-    {
-        (2, 4),
-        (5, 4),
-        (8, 4)
-    };
-
-    (int x, int y) exitDoorInRoom;
+    GameState state = new GameState(); 
     ElementReference gameDiv;
+
+    // Raccourcis pour ne pas casser ton HTML actuel
+    private Player player => state.Player;
+    private Map map => state.CurrentMap;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -154,136 +151,49 @@
             await gameDiv.FocusAsync();
     }
 
-    bool[] CurrentRoomsCompleted() => floorsProgress[currentFloor];
-    bool AllRoomsCompleted() => CurrentRoomsCompleted().All(r => r);
-
     void HandleKey(KeyboardEventArgs e)
     {
         switch (e.Key)
         {
-            case "z":
-            case "ArrowUp":
-                player.Move(0, -1, map);
-                break;
-            case "s":
-            case "ArrowDown":
-                player.Move(0, 1, map);
-                break;
-            case "q":
-            case "ArrowLeft":
-                player.Move(-1, 0, map);
-                break;
-            case "d":
-            case "ArrowRight":
-                player.Move(1, 0, map);
-                break;
+            case "z": case "ArrowUp":    player.Move(0, -1, map); break;
+            case "s": case "ArrowDown":  player.Move(0, 1, map);  break;
+            case "q": case "ArrowLeft":  player.Move(-1, 0, map); break;
+            case "d": case "ArrowRight": player.Move(1, 0, map);  break;
         }
-
         CheckEvents();
     }
 
     void CheckEvents()
     {
-        if (inCorridor)
+        if (state.InCorridor)
         {
-            // Monter (si pas dernier étage)
-            if (currentFloor < 3 &&
-                AllRoomsCompleted() &&
-                player.X == map.StairsX &&
-                player.Y == map.StairsY)
-            {
-                GoUp();
-                return;
-            }
+            bool allDone = state.FloorsProgress[state.CurrentFloor].All(r => r);
+            if (state.CurrentFloor < 3 && allDone && player.X == map.StairsX && player.Y == map.StairsY)
+                state.GoUp();
 
-            // Descendre
-            if (currentFloor > 1 &&
-                player.X == 0 &&
-                player.Y == 0)
-            {
-                GoDown();
-                return;
-            }
+            if (state.CurrentFloor > 1 && player.X == 0 && player.Y == 0)
+                state.GoDown();
 
-            // Portes
-            for (int i = 0; i < doors.Length; i++)
+            int[] doorX = { 2, 5, 8 };
+            for (int i = 0; i < doorX.Length; i++)
             {
-                if (player.X == doors[i].x &&
-                    player.Y == doors[i].y)
-                {
-                    EnterRoom(i);
-                    return;
-                }
+                if (player.X == doorX[i] && player.Y == 4) state.EnterRoom(i);
             }
         }
         else
         {
-            if (player.X == exitDoorInRoom.x &&
-                player.Y == exitDoorInRoom.y)
-            {
-                ReturnToCorridor();
-                return;
-            }
+            if (player.X == state.ExitDoorInRoom.x && player.Y == state.ExitDoorInRoom.y)
+                state.ReturnToCorridor();
 
-            if (!CurrentRoomsCompleted()[currentRoom] &&
-                player.X == map.BossX &&
-                player.Y == map.BossY)
-            {
-                showBoss = true;
-            }
+            if (!state.FloorsProgress[state.CurrentFloor][state.CurrentRoomIndex] && 
+                player.X == map.BossX && player.Y == map.BossY)
+                state.ShowBoss = true;
         }
-    }
-
-    void GoUp()
-    {
-        currentFloor++;
-        map = new Map(10, 10, currentFloor);
-
-        // spawn en haut à gauche, à côté de ⬇️
-        player = new Player(1, 0);
-        inCorridor = true;
-    }
-
-    void GoDown()
-    {
-        currentFloor--;
-        map = new Map(10, 10, currentFloor);
-
-        // spawn devant l’escalier ⬆️
-        player = new Player(map.StairsX, map.StairsY - 1);
-        inCorridor = true;
-    }
-
-    void EnterRoom(int roomIndex)
-    {
-        currentRoom = roomIndex;
-        inCorridor = false;
-
-        map = new Map(10, 10, currentFloor);
-        exitDoorInRoom = (0, map.Height / 2);
-        player = new Player(exitDoorInRoom.x + 1, exitDoorInRoom.y);
-
-        boss = BossFactory.CreateBoss(currentFloor, roomIndex + 1);
-        showBoss = false;
     }
 
     void AnswerBoss(int index)
     {
-        bool finished = boss!.Answer(index);
-        if (!finished) return;
-
-        showBoss = false;
-
-        if (boss.Defeated)
-            CurrentRoomsCompleted()[currentRoom] = true;
-        else
-            floorsProgress[currentFloor] = new bool[3];
-    }
-
-    void ReturnToCorridor()
-    {
-        inCorridor = true;
-        map = new Map(10, 10, currentFloor);
-        player = new Player(doors[currentRoom].x, doors[currentRoom].y + 1);
+        bool finished = state.CurrentBoss!.Answer(index);
+        if (finished) state.HandleBossDefeat(state.CurrentBoss.Defeated);
     }
 }
