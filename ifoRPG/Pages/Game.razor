@@ -25,7 +25,10 @@
 
     <!-- MAP -->
     <div class="center-panel">
-        <div class="map" tabindex="0" @onkeydown="HandleKey" @ref="gameDiv">
+        <div class="map"
+             tabindex="0"
+             @onkeydown="HandleKey"
+             @ref="gameDiv">
 
             @for (int y = 0; y < map.Height; y++)
             {
@@ -34,48 +37,47 @@
                     {
                         if (player.X == x && player.Y == y)
                         {
-                            <span class="tile player">🙂</span>
+                            <span class="tile">🙂</span>
                         }
-                        else if (!chatGPTTaken &&
-                        x == map.ChatGPTX &&
-                        y == map.ChatGPTY)
+                        // ESCALIER DE MONTÉE (ÉTAGE 1 ET 2 UNIQUEMENT)
+                        else if (inCorridor &&
+                                 currentFloor < 3 &&
+                                 x == map.StairsX &&
+                                 y == map.StairsY)
                         {
-                            <span class="tile">🤖</span>
+                            if (AllRoomsCompleted())
+                                { <span class="tile">⬆️</span> }
+                            else
+                                { <span class="tile">🚫⬆️</span> }
                         }
-                        else if (!boss.Defeated &&
-                        x == map.BossX &&
-                        y == map.BossY)
-                        {
-                            <span class="tile">👹</span>
-                        }
-                        else if (stairsUnlocked &&
-                        x == map.StairsX &&
-                        y == map.StairsY)
+                        // ESCALIER DE DESCENTE (HAUT GAUCHE)
+                        else if (inCorridor &&
+                                 currentFloor > 1 &&
+                                 x == 0 && y == 0)
                         {
                             <span class="tile">⬇️</span>
                         }
+                        else if (inCorridor &&
+                                 doors.Any(d => d.x == x && d.y == y))
+                        {
+                            <span class="tile">🚪</span>
+                        }
+                        else if (!inCorridor &&
+                                 x == exitDoorInRoom.x &&
+                                 y == exitDoorInRoom.y)
+                        {
+                            <span class="tile">🚪</span>
+                        }
+                        else if (!inCorridor &&
+                                 !CurrentRoomsCompleted()[currentRoom] &&
+                                 x == map.BossX &&
+                                 y == map.BossY)
+                        {
+                            <span class="tile">👹</span>
+                        }
                         else
                         {
-                            var currentTile = map.Tiles[x, y];
-                            @if (currentTile.Type == TileType.Window)
-                            {
-                                <span class="tile">🪟</span>
-                            }
-                            else if (currentTile.Type == TileType.Bench)
-                            {
-
-                                <span class="tile">🪑</span>
-                            }
-                            else if (currentTile.Type == TileType.PC)
-                            {
-
-                                <span class="tile">💻</span>
-                            }
-                            else
-                            {
-
-                                <span class="tile">.</span>
-                            }
+                            <span class="tile">.</span>
                         }
                     }
                 </div>
@@ -83,36 +85,27 @@
         </div>
     </div>
 
-    <!-- QUEST BOOK + QCM -->
+    <!-- QUEST BOOK + BOSS -->
     <div class="right-panel">
 
-        <!-- QUEST BOOK -->
         <div class="quest-book">
             <p><b>Quest Book</b></p>
-
-            @if (!floor1Quest.Completed)
-            {
-                <p>@floor1Quest.Description</p>
-            }
-            else
-            {
-                <p style="color: green;">✅ Étape 1 validée</p>
-            }
+            <p>Étage @currentFloor</p>
+            <ul>
+                @for (int i = 0; i < 3; i++)
+                {
+                    <li>
+                        Salle @(i + 1) :
+                        @(CurrentRoomsCompleted()[i] ? "✅" : "❌")
+                    </li>
+                }
+            </ul>
         </div>
 
-        <!-- BOSS -->
-        @if (showBoss)
+        @if (!inCorridor && showBoss && boss!.CurrentQuestion != null)
         {
             <div class="boss">
                 <h3>👹 @boss.Name</h3>
-
-                @if (player.Inventory.HasChatGPT())
-                {
-                    <button @onclick="CheatWithChatGPT">
-                        🤖 Tricher avec ChatGPT
-                    </button>
-                }
-
                 <p>@boss.CurrentQuestion.Text</p>
 
                 @for (int i = 0; i < boss.CurrentQuestion.Answers.Count; i++)
@@ -122,32 +115,38 @@
                         @boss.CurrentQuestion.Answers[i]
                     </button>
                 }
-
-                <p>@bossResult</p>
             </div>
         }
     </div>
-
 </div>
 
 @code {
     int currentFloor = 1;
-    Map map = new Map(10, 10, 1); Player player = new Player(0, 0);
+    int currentRoom = -1;
+    bool inCorridor = true;
 
-    Quest floor1Quest = new Quest("Réussir étage 1");
+    Dictionary<int, bool[]> floorsProgress = new()
+    {
+        { 1, new bool[3] },
+        { 2, new bool[3] },
+        { 3, new bool[3] }
+    };
+
+    Map map = new Map(10, 10, 1);
+    Player player = new Player(0, 0);
 
     Boss? boss;
-
     bool showBoss = false;
-    bool stairsUnlocked = false;
-    bool chatGPTTaken = false;
-    string bossResult = "";
 
-    ElementReference gameDiv;
-    protected override void OnInitialized()
+    (int x, int y)[] doors =
     {
-        boss = Boss.CreateBossForFloor(currentFloor);
-    }
+        (2, 4),
+        (5, 4),
+        (8, 4)
+    };
+
+    (int x, int y) exitDoorInRoom;
+    ElementReference gameDiv;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -155,11 +154,11 @@
             await gameDiv.FocusAsync();
     }
 
+    bool[] CurrentRoomsCompleted() => floorsProgress[currentFloor];
+    bool AllRoomsCompleted() => CurrentRoomsCompleted().All(r => r);
+
     void HandleKey(KeyboardEventArgs e)
     {
-        if (showBoss)
-            return;
-
         switch (e.Key)
         {
             case "z":
@@ -185,98 +184,106 @@
 
     void CheckEvents()
     {
-        // Pickup ChatGPT
-        if (!chatGPTTaken &&
-        player.X == map.ChatGPTX &&
-        player.Y == map.ChatGPTY)
+        if (inCorridor)
         {
-            player.Inventory.Add(new ChatGPTItem());
-            chatGPTTaken = true;
-        }
+            // Monter (si pas dernier étage)
+            if (currentFloor < 3 &&
+                AllRoomsCompleted() &&
+                player.X == map.StairsX &&
+                player.Y == map.StairsY)
+            {
+                GoUp();
+                return;
+            }
 
-        // Boss
-        if (!boss.Defeated &&
-        player.X == map.BossX &&
-        player.Y == map.BossY)
-        {
-            showBoss = true;
-        }
+            // Descendre
+            if (currentFloor > 1 &&
+                player.X == 0 &&
+                player.Y == 0)
+            {
+                GoDown();
+                return;
+            }
 
-        // Stairs
-        if (stairsUnlocked &&
-        player.X == map.StairsX &&
-        player.Y == map.StairsY)
+            // Portes
+            for (int i = 0; i < doors.Length; i++)
+            {
+                if (player.X == doors[i].x &&
+                    player.Y == doors[i].y)
+                {
+                    EnterRoom(i);
+                    return;
+                }
+            }
+        }
+        else
         {
-            NextFloor();
+            if (player.X == exitDoorInRoom.x &&
+                player.Y == exitDoorInRoom.y)
+            {
+                ReturnToCorridor();
+                return;
+            }
+
+            if (!CurrentRoomsCompleted()[currentRoom] &&
+                player.X == map.BossX &&
+                player.Y == map.BossY)
+            {
+                showBoss = true;
+            }
         }
     }
 
-    void NextFloor()
+    void GoUp()
     {
-        currentFloor++; // On passe à l'étage 2, 3, etc.
-
-        // On crée la map AVEC le nouvel étage
+        currentFloor++;
         map = new Map(10, 10, currentFloor);
 
-        player = new Player(0, 0);
-        boss = Boss.CreateBossForFloor(currentFloor);
+        // spawn en haut à gauche, à côté de ⬇️
+        player = new Player(1, 0);
+        inCorridor = true;
+    }
 
-        // On reset les drapeaux pour le nouvel étage
-        stairsUnlocked = false;
-        chatGPTTaken = false;
+    void GoDown()
+    {
+        currentFloor--;
+        map = new Map(10, 10, currentFloor);
+
+        // spawn devant l’escalier ⬆️
+        player = new Player(map.StairsX, map.StairsY - 1);
+        inCorridor = true;
+    }
+
+    void EnterRoom(int roomIndex)
+    {
+        currentRoom = roomIndex;
+        inCorridor = false;
+
+        map = new Map(10, 10, currentFloor);
+        exitDoorInRoom = (0, map.Height / 2);
+        player = new Player(exitDoorInRoom.x + 1, exitDoorInRoom.y);
+
+        boss = BossFactory.CreateBoss(currentFloor, roomIndex + 1);
         showBoss = false;
-        bossResult = $"Bienvenue à l'étage {currentFloor} !";
-
-        StateHasChanged();
     }
 
     void AnswerBoss(int index)
     {
-        // 1. On enregistre la réponse dans l'objet boss
         bool finished = boss!.Answer(index);
+        if (!finished) return;
 
-        // 2. Si le QCM est fini (après 3 questions)
-        if (finished)
-        {
-            if (boss.Defeated)
-            {
-                // IMPORTANT : On appelle WinBoss ici pour ouvrir la porte
-                WinBoss();
-            }
-            else
-            {
-                // Si raté, on recommence l'étage
-                ResetFloor();
-            }
-
-            showBoss = false; // On ferme la fenêtre de dialogue
-        }
-
-        StateHasChanged(); // On force le rafraîchissement
-    }
-
-    void CheatWithChatGPT()
-    {
-        player.Inventory.UseChatGPT();
-        WinBoss();
         showBoss = false;
+
+        if (boss.Defeated)
+            CurrentRoomsCompleted()[currentRoom] = true;
+        else
+            floorsProgress[currentFloor] = new bool[3];
     }
 
-    void WinBoss()
+    void ReturnToCorridor()
     {
-        bossResult = "✅ Examen réussi ! La sortie est ouverte.";
-        stairsUnlocked = true; // C'est CA qui fait apparaître la flèche ⬇️
-        boss!.Defeated = true;
-        StateHasChanged();
+        inCorridor = true;
+        map = new Map(10, 10, currentFloor);
+        player = new Player(doors[currentRoom].x, doors[currentRoom].y + 1);
     }
-
-    void ResetFloor()
-    {
-        player = new Player(0, 0);
-        boss = Boss.CreateBossForFloor(currentFloor); stairsUnlocked = false;
-        chatGPTTaken = false;
-        floor1Quest.Reset();
-    }
-
-   
 }
