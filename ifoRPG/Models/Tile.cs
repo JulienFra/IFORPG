@@ -1,6 +1,6 @@
 namespace ifoRPG.Models;
 
-public enum TileType { Ground, Window, Bench, PC, Wall } // Wall servira pour les bordures de la salle
+public enum TileType { Ground, Window, Bench, PC, Wall, Board } // Wall servira pour les bordures de la salle
 
 public class Tile
 {
