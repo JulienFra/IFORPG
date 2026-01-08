@@ -29,29 +29,19 @@
                 <div class="row">
                     @for (int x = 0; x < map.Width; x++)
                     {
-                        @* 1. INITIALISATION *@
-                                string tileClass = "floor";
+                        @* 1. INITIALISATION DES CLASSES *@
+                        string tileClass = "floor";
                         string rotationClass = "";
 
-                        @* 2. LOGIQUE DES PC ET ROTATIONS *@
-                                @if (!state.InCorridor && map.Tiles[x, y].Type == TileType.PC)
+                        @* 2. LOGIQUE DES TUILES DE DÉCOR *@
+                        if (!state.InCorridor && map.Tiles[x, y].Type == TileType.PC)
                         {
                             tileClass = "tile-pc";
-
-                            // Tes 3 PC verticaux en X7 : rotation 90°
-                            if (x == 7 && (y == 4 || y == 5 || y == 6))
-                            {
-                                rotationClass = "right";
-                            }
-                            // Ta rangée du haut : rotation 180°
-                            else if (y == 3 && x >= 1 && x <= 7)
-                            {
-                                rotationClass = "up";
-                            }
+                            if (x == 7 && (y == 4 || y == 5 || y == 6)) { rotationClass = "right"; }
+                            else if (y == 3 && x >= 1 && x <= 7) { rotationClass = "up"; }
                         }
-                        @* 3. LOGIQUE PORTE (X0, Y5) ET FENÊTRE *@
-                                else if ((state.InCorridor && (x == 2 || x == 5 || x == 8) && y == 4) ||
-                (!state.InCorridor && x == 0 && y == 5))
+                        else if ((state.InCorridor && (x == 2 || x == 5 || x == 8) && y == 4) ||
+                                 (!state.InCorridor && x == 0 && y == 5))
                         {
                             tileClass = "tile-door";
                         }
@@ -59,47 +49,49 @@
                         {
                             tileClass = "tile-window";
                         }
+                        @* LOGIQUE POUR LES NOUVEAUX ESCALIERS *@
+                        else if (state.InCorridor && x == map.StairsX && y == map.StairsY)
+                        {
+                            @* On vérifie si on peut monter (toutes les salles finies) *@
+                            if (state.CurrentFloor < 3)
+                            {
+                                tileClass = state.FloorsProgress[state.CurrentFloor].All(r => r) 
+                                            ? "tile-stairs" 
+                                            : "tile-no-entry";
+                            }
+                        }
+                        else if (state.InCorridor && state.CurrentFloor > 1 && x == 0 && y == 0)
+                        {
+                            tileClass = "tile-stairs";
+                        }
 
-                        @* 4. RENDU DE LA CASE *@
+                        @* 3. RENDU DE LA CASE *@
                         <div class="tile @tileClass @rotationClass">
 
                             @if (player.X == x && player.Y == y)
                             {
-                                @* Affichage du personnage player.png via le CSS *@
-                                            <div class="player"></div>
+                                <div class="player"></div>
                             }
                             else if (!state.InCorridor && !state.FloorsProgress[state.CurrentFloor][state.CurrentRoomIndex]
-                            && x == map.BossX && y == map.BossY)
+                                     && x == map.BossX && y == map.BossY)
                             {
-                                @* Si c'est le premier étage et la première salle, on affiche Jeremy *@
-                if (state.CurrentFloor == 1 && state.CurrentRoomIndex == 0)
+                                if (state.CurrentFloor == 1 && state.CurrentRoomIndex == 0)
                                 {
                                     <div class="boss-jeremy"></div>
                                 }
                                 else
                                 {
-                                    @* Pour les autres boss non encore créés, on garde l'emoji par défaut *@
-                        <span class="boss-icon">👹</span>
+                                    <span class="boss-icon">👹</span>
                                 }
                             }
                             else if (!state.InCorridor && map.Tiles[x, y].Type == TileType.Board)
                             {
                                 <span class="boss-icon">👨‍🏫</span>
                             }
-                            @* ESCALIERS *@
-                                    else if (state.InCorridor && state.CurrentFloor < 3 && x == map.StairsX && y == map.StairsY)
-                            {
-                                <span class="boss-icon">@(state.FloorsProgress[state.CurrentFloor].All(r => r) ? "⬆️" :
-                                                            "🚫⬆️")</span>
-                                        }
-                                        else if (state.InCorridor && state.CurrentFloor > 1 && x == 0 && y == 0)
-                    {
-                        <span class="boss-icon">⬇️</span>
+                        </div>
                     }
                 </div>
-                                }
-            </div>
-                        }
+            }
         </div>
     </div>
 
@@ -180,12 +172,11 @@
         }
         else
         {
-            // SORTIE PORTE (X0, Y5)
             if (player.X == 0 && player.Y == 5)
                 state.ReturnToCorridor();
 
             if (!state.FloorsProgress[state.CurrentFloor][state.CurrentRoomIndex] &&
-            player.X == map.BossX && player.Y == map.BossY)
+                player.X == map.BossX && player.Y == map.BossY)
                 state.ShowBoss = true;
         }
     }

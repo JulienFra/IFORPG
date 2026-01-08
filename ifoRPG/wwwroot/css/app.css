@@ -225,3 +225,15 @@ a, .btn-link { color: #0071c1; }
     display: block;
     overflow: visible;
 }
+
+/* --- ESCALIERS ET PANNEAU --- */
+
+.tile-stairs {
+    background-image: url('../images/stairs.png'), url('../images/floor.png') !important;
+    background-size: 100% 100%, 40px 40px !important;
+}
+
+.tile-no-entry {
+    background-image: url('../images/closed_stairs.png'), url('../images/floor.png') !important;
+    background-size: 100% 100%, 40px 40px !important;
+}
