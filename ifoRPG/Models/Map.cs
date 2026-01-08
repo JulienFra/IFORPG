@@ -56,7 +56,6 @@ public class Map
                     for (int i = 4; i <= 6; i++) { Tiles[7, i] = new Tile(TileType.PC); }
                     // Ligne horizontale basse
                     for (int i = 1; i <= 7; i++) { Tiles[i, 7] = new Tile(TileType.PC); }
-                    Tiles[9, 5] = new Tile(TileType.Board);
 
                     BossX = 8; BossY = 5;
                 }

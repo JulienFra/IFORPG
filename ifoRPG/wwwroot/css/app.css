@@ -105,30 +105,72 @@ a, .btn-link { color: #0071c1; }
     background-image: url('../images/floor.png');
     background-size: 40px 40px; 
     background-repeat: no-repeat;
+    background-position: center;
     image-rendering: pixelated;
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
-/* --- CORRECTION PORTES ET PC --- */
+/* --- CORRECTION PORTES, PC ET FENETRES --- */
 
 .tile-pc { 
-    /* On force l'image du PC par dessus le sol de .tile */
     background-image: url('../images/pc.png'), url('../images/floor.png') !important;
     background-size: 40px 40px, 40px 40px !important;
 }
 
 .tile-door { 
-    /* On force la porte (devant) et le sol (derrière) */
     background-image: url('../images/door.png'), url('../images/floor.png') !important; 
-    /* La porte garde sa taille (auto ou contain) et le sol fait 40px */
     background-size: contain, 40px 40px !important; 
     background-position: center, center !important;
 }
 
-/* --- ENTITÉS (JOUEUR, EMOJIS) --- */
-.player, .boss-icon {
+.tile-window { 
+    background-image: url('../images/window.png'), url('../images/floor.png') !important; 
+    background-size: 100% 100%, 40px 40px !important; 
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+}
+
+/* --- ENTITÉS (JOUEUR & BOSS) --- */
+
+.player {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 50px; 
+    height: 50px;
+    background-image: url('../images/player.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    z-index: 20;
+    image-rendering: pixelated;
+    pointer-events: none;
+}
+
+/* Nouveau style pour Jeremy (Boss de la salle 1) */
+.boss-jeremy {
+    position: absolute;
+    /* On le remonte un peu pour qu'il "flotte" au-dessus de sa case */
+    top: 40%; 
+    left: 50%;
+    transform: translate(-50%, -50%);
+    
+    /* On passe à 80px (2 cases de haut) pour voir les détails */
+    width: 80px; 
+    height: 80px;
+    
+    background-image: url('../images/jeremy.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    z-index: 25; /* Au-dessus du joueur s'ils se croisent */
+    image-rendering: pixelated;
+}
+
+.boss-icon {
     position: absolute;
     top: 50%;
     left: 50%;
@@ -139,8 +181,6 @@ a, .btn-link { color: #0071c1; }
     text-shadow: 1px 1px 2px black;
     pointer-events: none;
 }
-
-.player { font-weight: bold; }
 
 /* --- INTERFACES BOSS --- */
 .boss button {
@@ -156,3 +196,32 @@ a, .btn-link { color: #0071c1; }
 }
 
 .boss button:hover { background-color: #45a049; }
+
+/* --- LOGIQUE DE ROTATION --- */
+
+.tile.tile-pc.up { 
+    transform: rotate(180deg) !important; 
+}
+
+.tile.tile-pc.right { 
+    transform: rotate(270deg) !important;
+    transform-origin: center center !important;
+}
+
+/* Redressement du joueur et de Jeremy sur les cases pivotées */
+.tile-pc.up .player, 
+.tile-pc.up .boss-jeremy,
+.tile-pc.up .boss-icon { 
+    transform: translate(-50%, -50%) rotate(-180deg) !important; 
+}
+
+.tile-pc.right .player, 
+.tile-pc.right .boss-jeremy,
+.tile-pc.right .boss-icon { 
+    transform: translate(-50%, -50%) rotate(-270deg) !important; 
+}
+
+.tile-pc {
+    display: block;
+    overflow: visible;
+}
