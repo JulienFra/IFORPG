@@ -170,6 +170,82 @@ a, .btn-link { color: #0071c1; }
     image-rendering: pixelated;
 }
 
+
+.boss-cedric {
+    position: absolute;
+    top: 40%; 
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 75px; 
+    height: 75px;
+    background-image: url('../images/cedric.png'); 
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    z-index: 25;
+    image-rendering: pixelated;
+}
+
+.boss-bernair {
+    position: absolute;
+    top: 40%; 
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 75px; 
+    height: 75px;
+    background-image: url('../images/bernair.png'); /* Pense à ajouter l'image */
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    z-index: 25;
+    image-rendering: pixelated;
+}
+
+.boss-six {
+    position: absolute;
+    top: 40%; 
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 75px; 
+    height: 75px;
+    background-image: url('../images/six.png'); 
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    z-index: 25;
+    image-rendering: pixelated;
+}
+
+.boss-martin {
+    position: absolute;
+    top: 40%; 
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 75px; 
+    height: 75px;
+    background-image: url('../images/martin.png'); 
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    z-index: 25;
+    image-rendering: pixelated;
+}
+
+.boss-christophe {
+    position: absolute;
+    top: 40%; 
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 75px; 
+    height: 75px;
+    background-image: url('../images/christophe.png'); 
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    z-index: 25;
+    image-rendering: pixelated;
+}
+
 .boss-icon {
     position: absolute;
     top: 50%;
