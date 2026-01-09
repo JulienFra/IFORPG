@@ -113,7 +113,6 @@ a, .btn-link { color: #0071c1; }
 }
 
 /* --- CORRECTION PORTES, PC ET FENETRES --- */
-
 .tile-pc { 
     background-image: url('../images/pc.png'), url('../images/floor.png') !important;
     background-size: 40px 40px, 40px 40px !important;
@@ -133,7 +132,6 @@ a, .btn-link { color: #0071c1; }
 }
 
 /* --- ENTITÉS (JOUEUR & BOSS) --- */
-
 .player {
     position: absolute;
     top: 50%;
@@ -141,44 +139,30 @@ a, .btn-link { color: #0071c1; }
     transform: translate(-50%, -50%);
     width: 50px; 
     height: 50px;
-    background-image: url('../images/player.png');
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
     z-index: 20;
     image-rendering: pixelated;
     pointer-events: none;
-}
-
-/* Nouveau style pour Jeremy (Boss de la salle 1) */
-.boss-jeremy {
-    position: absolute;
-    /* On le remonte un peu pour qu'il "flotte" au-dessus de sa case */
-    top: 40%; 
-    left: 50%;
-    transform: translate(-50%, -50%);
-    
-    /* On passe à 80px (2 cases de haut) pour voir les détails */
-    width: 80px; 
-    height: 80px;
-    
-    background-image: url('../images/jeremy.png');
+    display: block;
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
-    z-index: 25; /* Au-dessus du joueur s'ils se croisent */
-    image-rendering: pixelated;
 }
 
+/* Cas spécifiques Avatar */
+.player.male {
+    background-image: url('../images/player_male.png');
+}
 
-.boss-cedric {
+.player.female {
+    background-image: url('../images/player_female.png');
+}
+
+/* Boss Styles */
+.boss-jeremy, .boss-cedric, .boss-bernair, .boss-six, .boss-martin, .boss-christophe {
     position: absolute;
     top: 40%; 
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 75px; 
-    height: 75px;
-    background-image: url('../images/cedric.png'); 
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
@@ -186,65 +170,12 @@ a, .btn-link { color: #0071c1; }
     image-rendering: pixelated;
 }
 
-.boss-bernair {
-    position: absolute;
-    top: 40%; 
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 75px; 
-    height: 75px;
-    background-image: url('../images/bernair.png'); /* Pense à ajouter l'image */
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-    z-index: 25;
-    image-rendering: pixelated;
-}
-
-.boss-six {
-    position: absolute;
-    top: 40%; 
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 75px; 
-    height: 75px;
-    background-image: url('../images/six.png'); 
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-    z-index: 25;
-    image-rendering: pixelated;
-}
-
-.boss-martin {
-    position: absolute;
-    top: 40%; 
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 75px; 
-    height: 75px;
-    background-image: url('../images/martin.png'); 
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-    z-index: 25;
-    image-rendering: pixelated;
-}
-
-.boss-christophe {
-    position: absolute;
-    top: 40%; 
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 75px; 
-    height: 75px;
-    background-image: url('../images/christophe.png'); 
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-    z-index: 25;
-    image-rendering: pixelated;
-}
+.boss-jeremy { background-image: url('../images/jeremy.png'); width: 80px; height: 80px; }
+.boss-cedric { background-image: url('../images/cedric.png'); width: 75px; height: 75px; }
+.boss-bernair { background-image: url('../images/bernair.png'); width: 75px; height: 75px; }
+.boss-six { background-image: url('../images/six.png'); width: 75px; height: 75px; }
+.boss-martin { background-image: url('../images/martin.png'); width: 75px; height: 75px; }
+.boss-christophe { background-image: url('../images/christophe.png'); width: 75px; height: 75px; }
 
 .boss-icon {
     position: absolute;
@@ -258,7 +189,7 @@ a, .btn-link { color: #0071c1; }
     pointer-events: none;
 }
 
-/* --- INTERFACES BOSS --- */
+/* --- INTERFACES BOSS & QUESTIONNAIRE --- */
 .boss button {
     display: block;
     width: 100%;
@@ -273,37 +204,38 @@ a, .btn-link { color: #0071c1; }
 
 .boss button:hover { background-color: #45a049; }
 
+/* Grille pour les réponses du quiz */
+.answers-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.btn-answer {
+    padding: 12px;
+    background-color: #444;
+    color: white;
+    border: 1px solid #666;
+    border-radius: 5px;
+    cursor: pointer;
+    text-align: left;
+}
+
+.btn-answer:hover {
+    background-color: #555;
+}
+
 /* --- LOGIQUE DE ROTATION --- */
+.tile.tile-pc.up { transform: rotate(180deg) !important; }
+.tile.tile-pc.right { transform: rotate(270deg) !important; transform-origin: center center !important; }
 
-.tile.tile-pc.up { 
-    transform: rotate(180deg) !important; 
-}
+.tile-pc.up .player, .tile-pc.up .boss-jeremy, .tile-pc.up .boss-icon { transform: translate(-50%, -50%) rotate(-180deg) !important; }
+.tile-pc.right .player, .tile-pc.right .boss-jeremy, .tile-pc.right .boss-icon { transform: translate(-50%, -50%) rotate(-270deg) !important; }
 
-.tile.tile-pc.right { 
-    transform: rotate(270deg) !important;
-    transform-origin: center center !important;
-}
-
-/* Redressement du joueur et de Jeremy sur les cases pivotées */
-.tile-pc.up .player, 
-.tile-pc.up .boss-jeremy,
-.tile-pc.up .boss-icon { 
-    transform: translate(-50%, -50%) rotate(-180deg) !important; 
-}
-
-.tile-pc.right .player, 
-.tile-pc.right .boss-jeremy,
-.tile-pc.right .boss-icon { 
-    transform: translate(-50%, -50%) rotate(-270deg) !important; 
-}
-
-.tile-pc {
-    display: block;
-    overflow: visible;
-}
+.tile-pc { display: block; overflow: visible; }
 
 /* --- ESCALIERS ET PANNEAU --- */
-
 .tile-stairs {
     background-image: url('../images/stairs.png'), url('../images/floor.png') !important;
     background-size: 100% 100%, 40px 40px !important;
@@ -316,21 +248,15 @@ a, .btn-link { color: #0071c1; }
 
 .victory-overlay {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.85); /* Fond sombre transparent */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex; justify-content: center; align-items: center; z-index: 1000;
 }
 
 .victory-card {
     background: #2c3e50;
     padding: 40px;
-    border: 5px solid #f1c40f; /* Bordure dorée */
+    border: 5px solid #f1c40f;
     border-radius: 15px;
     text-align: center;
     color: white;
@@ -345,4 +271,26 @@ a, .btn-link { color: #0071c1; }
     border: none;
     cursor: pointer;
     font-size: 1.2rem;
+}
+
+.tile-flower {
+    background-image: url('../images/flower.png'), url('../images/floor.png') ; 
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    image-rendering: pixelated;
+    position: relative;
+}
+
+.tile-flower::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background-image: url('../images/flower.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    image-rendering: pixelated;
+    z-index: 2;
 }

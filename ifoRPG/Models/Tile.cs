@@ -1,15 +1,31 @@
-namespace ifoRPG.Models;
-
-public enum TileType { Ground, Window, Bench, PC, Wall, Board } // Wall servira pour les bordures de la salle
-
-public class Tile
+namespace ifoRPG.Models
 {
-    public TileType Type { get; }
-    // On définit ce qui bloque le passage : Bench, PC et Wall bloquent. Ground et Window non.
-    public bool IsWalkable => Type == TileType.Ground || Type == TileType.Window;
+    // Définition de tous les types de tuiles possibles dans le jeu
+    public enum TileType 
+    { 
+        Ground, 
+        Window, 
+        Bench, 
+        PC, 
+        Wall, 
+        Board, 
+        Flower // Corrigé : Flower au lieu de Flowe
+    }
 
-    public Tile(TileType type)
+    public class Tile
     {
-        Type = type;
+        public TileType Type { get; }
+
+        // Logique de collision :
+        // Le joueur peut marcher sur le sol (Ground), devant les fenêtres (Window)
+        // et sur les pots de fleurs (Flower) pour pouvoir trouver l'item caché.
+        public bool IsWalkable => Type == TileType.Ground || 
+                                  Type == TileType.Window || 
+                                  Type == TileType.Flower; 
+
+        public Tile(TileType type)
+        {
+            Type = type;
+        }
     }
 }

@@ -171,14 +171,12 @@ namespace ifoRPG.Models
         }
         public void TryPickupChatGPT()
         {
-            if (!ChatGPTPicked &&
-                InCorridor &&
-                CurrentFloor == 1 &&
-                Player.X == ChatGPTPosition.x &&
-                Player.Y == ChatGPTPosition.y)
+            // On vérifie juste si on ne l'a pas déjà ramassé
+            if (!ChatGPTPicked)
             {
                 Player.Inventory.Add(new ChatGPTItem());
                 ChatGPTPicked = true;
+                Console.WriteLine("Item ajouté à l'inventaire !");
             }
         }
         public void UseChatGPTOnBoss()
