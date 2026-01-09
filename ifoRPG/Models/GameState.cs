@@ -16,6 +16,10 @@ namespace ifoRPG.Models
         public bool ShowBoss { get; set; }
         public bool IntroductionRead { get; set; }
         public (int x, int y) ExitDoorInRoom { get; set; }
+        // --- ChatGPT ---
+        public bool ChatGPTPicked { get; set; } = false;
+        public (int x, int y) ChatGPTPosition => (8, 1); // Couloir étage 1
+
 
         // Limité à 2 étages
         public Dictionary<int, bool[]> FloorsProgress { get; set; } = new()
@@ -40,7 +44,8 @@ namespace ifoRPG.Models
 
             CurrentMap = new Map(10, 10, CurrentFloor, roomIndex + 1, false);
             ExitDoorInRoom = (0, CurrentMap.Height / 2);
-            Player = new Player(ExitDoorInRoom.x + 1, ExitDoorInRoom.y);
+            Player.X = ExitDoorInRoom.x + 1;
+            Player.Y = ExitDoorInRoom.y;
 
             // --- ÉTAGE 1 ---
             if (CurrentFloor == 1 && roomIndex == 0) // Jeremy Kairis
@@ -124,7 +129,8 @@ namespace ifoRPG.Models
         {
             InCorridor = true;
             CurrentMap = new Map(10, 10, CurrentFloor, -1, true);
-            Player = new Player(_corridorDoors[CurrentRoomIndex].x, _corridorDoors[CurrentRoomIndex].y + 1);
+            Player.X = _corridorDoors[CurrentRoomIndex].x;
+            Player.Y = _corridorDoors[CurrentRoomIndex].y + 1;
         }
 
         public void GoUp()
@@ -134,7 +140,8 @@ namespace ifoRPG.Models
                 CurrentFloor++;
                 InCorridor = true;
                 CurrentMap = new Map(10, 10, CurrentFloor, -1, true);
-                Player = new Player(0, 1);
+                Player.X = 0;
+                Player.Y = 1;
             }
         }
 
@@ -145,7 +152,8 @@ namespace ifoRPG.Models
                 CurrentFloor--;
                 InCorridor = true;
                 CurrentMap = new Map(10, 10, CurrentFloor, -1, true);
-                Player = new Player(CurrentMap.StairsX, CurrentMap.StairsY + 1);
+                Player.X = CurrentMap.StairsX;
+                Player.Y = CurrentMap.StairsY - 1;
             }
         }
 
@@ -159,6 +167,26 @@ namespace ifoRPG.Models
             else
             {
                 FloorsProgress[CurrentFloor] = new bool[3];
+            }
+        }
+        public void TryPickupChatGPT()
+        {
+            if (!ChatGPTPicked &&
+                InCorridor &&
+                CurrentFloor == 1 &&
+                Player.X == ChatGPTPosition.x &&
+                Player.Y == ChatGPTPosition.y)
+            {
+                Player.Inventory.Add(new ChatGPTItem());
+                ChatGPTPicked = true;
+            }
+        }
+        public void UseChatGPTOnBoss()
+        {
+            if (CurrentBoss != null && Player.Inventory.HasChatGPT())
+            {
+                Player.Inventory.UseChatGPT();
+                CurrentBoss.ForceDefeat();
             }
         }
     }

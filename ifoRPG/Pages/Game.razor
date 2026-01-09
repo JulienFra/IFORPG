@@ -68,6 +68,18 @@
 
                         @* 3. RENDU DE LA CASE *@
                             <div class="tile @tileClass @rotationClass">
+                            @if (state.InCorridor &&
+                                    state.CurrentFloor == 1 &&
+                                    !state.ChatGPTPicked &&
+                                    x == state.ChatGPTPosition.x &&
+                                    y == state.ChatGPTPosition.y)
+                                {
+                                    <div class="chatgpt-item">🤖</div>
+                                }
+                                else if (player.X == x && player.Y == y)
+                                {
+                                    <div class="player"></div>
+                                }
 
                             @if (player.X == x && player.Y == y)
                             {
@@ -146,6 +158,12 @@
         @if (!state.InCorridor && state.ShowBoss && state.CurrentBoss != null)
         {
             <div class="boss">
+            @if (player.Inventory.HasChatGPT())
+            {
+                <button class="btn-primary" @onclick="UseChatGPT">
+                    🤖 Utiliser ChatGPT (réussite automatique)
+                </button>
+            }
                 <h3>👨‍🏫 @state.CurrentBoss.Name</h3>
 
                 @* --- LOGIQUE DE L'INTRODUCTION --- *@
@@ -241,6 +259,7 @@
 
     void CheckEvents()
     {
+        state.TryPickupChatGPT();
         if (state.InCorridor)
         {
             // On récupère la progression de l'étage actuel
@@ -300,6 +319,7 @@
                 StateHasChanged();
             }
         }
+        
     }
 
     void AnswerBoss(int index)
@@ -309,6 +329,11 @@
         if (finished) state.HandleBossDefeat(state.CurrentBoss.Defeated);
     }
 
+    void UseChatGPT()
+    {
+        state.UseChatGPTOnBoss();
+        state.HandleBossDefeat(true);
+    }
     void RestartGame()
     {
         state = new GameState(); // Recrée un nouvel état tout neuf
