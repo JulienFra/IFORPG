@@ -97,3 +97,119 @@ Le joueur incarne un étudiant qui doit **réussir ses examens**, **vaincre des 
 2. Vérifier que le projet est bien en **Blazor WebAssembly**
 3. Lancer avec **F5**
 
+## 🧩 Diagramme de classes – ifoRPG
+
+Ce diagramme présente l’architecture orientée objet du jeu **ifoRPG**.  
+Il illustre les relations entre le joueur, l’état du jeu, les cartes, les boss, les objets et la progression.
+
+### 🧠 Description
+
+- **GameState** : cœur du jeu, gère l’état global (étages, salles, cartes, boss, progression).
+- **Player** : représente le joueur et sa position dans le monde.
+- **Inventory / Item** : gestion des objets (ex : ChatGPT).
+- **Map / Tile** : représentation de l’environnement de jeu sous forme de grille.
+- **Boss / Question** : système d’examens sous forme de QCM.
+- **Floor / Room** : organisation de la progression par étage et par salle.
+
+### 📐 Diagramme UML
+
+> Le diagramme ci-dessous est généré avec **Mermaid** et affiché automatiquement par GitHub.
+
+```mermaid
+classDiagram
+direction LR
+
+class GameState {
+    +int CurrentFloor
+    +int CurrentRoomIndex
+    +bool InCorridor
+    +Map CurrentMap
+    +Player Player
+    +Boss CurrentBoss
+    +bool ShowBoss
+    +bool IntroductionRead
+    +Dictionary<int, bool[]> FloorsProgress
+}
+
+class Player {
+    +int X
+    +int Y
+    +Inventory Inventory
+}
+
+class Inventory {
+    +List~Item~ Items
+    +Add(item)
+    +HasChatGPT()
+    +UseChatGPT()
+}
+
+class Item {
+    <<abstract>>
+    +string Name
+}
+
+class ChatGPTItem
+
+Item <|-- ChatGPTItem
+Player --> Inventory
+Inventory --> Item
+
+class Map {
+    +int Width
+    +int Height
+    +Tile[,] Tiles
+    +int FloorNumber
+    +int RoomNumber
+}
+
+class Tile {
+    +TileType Type
+    +bool IsWalkable
+}
+
+class TileType {
+    <<enum>>
+    Ground
+    Window
+    Bench
+    PC
+    Wall
+    Board
+}
+
+Map --> Tile
+Tile --> TileType
+
+class Boss {
+    +string Name
+    +List~Question~ Questions
+    +int CorrectAnswers
+    +bool Defeated
+}
+
+class Question {
+    +string Text
+    +List~string~ Answers
+    +int CorrectIndex
+}
+
+Boss --> Question
+
+class Floor {
+    +int FloorNumber
+    +List~Room~ Rooms
+}
+
+class Room {
+    +int RoomNumber
+    +Boss Boss
+}
+
+Floor --> Room
+Room --> Boss
+
+GameState --> Player
+GameState --> Map
+GameState --> Boss
+GameState --> Floor
