@@ -5,7 +5,7 @@ public class Player
     public int X { get; set; }
     public int Y { get; set; }
     public string Avatar { get; set; } = "male"; 
-
+    public string Class { get; set; } = "";
 
     public Player(int startX, int startY)
     {

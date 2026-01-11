@@ -10,21 +10,6 @@
 
         <div class="content-scroll-area">
             <div class="description-section">
-                <h3>👤 Choisir votre personnage</h3>
-                <div class="avatar-selection-grid">
-                    <div class="avatar-option @(selectedAvatar == "male" ? "active" : "")" @onclick='() => selectedAvatar = "male"'>
-                        <div class="avatar-preview male"></div>
-                        <p>Étudiant</p>
-                        <div class="selection-indicator">@(selectedAvatar == "male" ? "✅" : "")</div>
-                    </div>
-
-                    <div class="avatar-option @(selectedAvatar == "female" ? "active" : "")" @onclick='() => selectedAvatar = "female"'>
-                        <div class="avatar-preview female"></div>
-                        <p>Étudiante</p>
-                        <div class="selection-indicator">@(selectedAvatar == "female" ? "✅" : "")</div>
-                    </div>
-                </div>
-
                 <h3>📖 L'Histoire</h3>
                 <p>
                     Incarnez un nouvel étudiant dans une école mystérieuse. 
@@ -49,12 +34,9 @@
 </div>
 
 @code {
-    private string selectedAvatar = "male";
-
     void StartGame()
     {
-        // On passe le sexe choisi dans l'URL pour que la page Game puisse l'appliquer au joueur
-        NavManager.NavigateTo($"game?avatar={selectedAvatar}");
+        NavManager.NavigateTo("game");
     }
 }
 
@@ -98,6 +80,12 @@
         text-shadow: 3px 3px #000;
     }
 
+    .game-subtitle {
+        color: #aaa;
+        font-size: 1.1rem;
+        margin-top: 5px;
+    }
+
     .content-scroll-area {
         flex-grow: 1;
         overflow-y: auto; 
@@ -112,62 +100,6 @@
         border-left: 5px solid #4CAF50;
     }
 
-    /* --- Styles Sélection Avatar --- */
-    .avatar-selection-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 15px;
-        margin: 15px 0;
-    }
-
-    .avatar-option {
-        background: #333;
-        border: 2px solid #444;
-        border-radius: 10px;
-        padding: 10px;
-        text-align: center;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        position: relative;
-    }
-
-    .avatar-option:hover {
-        background: #383838;
-        border-color: #666;
-    }
-
-    .avatar-option.active {
-        border-color: #4CAF50;
-        background: #2e3d2e;
-        transform: scale(1.05);
-    }
-
-    .avatar-preview {
-        height: 60px;
-        width: 100%;
-        background-size: contain;
-        background-repeat: no-repeat;
-        background-position: center;
-        margin-bottom: 5px;
-        image-rendering: pixelated;
-    }
-
-    /* Remplace par tes vrais liens d'images */
-    .avatar-preview.male { background-image: url('images/player_male.png'); }
-    .avatar-preview.female { background-image: url('images/player_female.png'); }
-
-    .avatar-option p {
-        margin: 5px 0;
-        font-weight: bold;
-        font-size: 0.85rem;
-    }
-
-    .selection-indicator {
-        font-size: 1.2rem;
-        height: 20px;
-    }
-
-    /* --- Reste du style --- */
     .description-section h3 {
         color: #4CAF50;
         margin-top: 15px;
@@ -179,6 +111,10 @@
         font-size: 0.9rem;
         color: #ccc;
         margin-bottom: 8px;
+    }
+
+    .description-section ul {
+        padding-left: 20px;
     }
 
     .play-button {
