@@ -8,8 +8,6 @@ public class Boss
     public int CorrectAnswers { get; private set; }
     public bool Defeated { get; private set; }
 
-    private const int RequiredCorrectAnswers = 4;
-
     public Boss(string name, List<Question> questions)
     {
         Name = name;
@@ -34,7 +32,8 @@ public class Boss
 
         if (CurrentQuestionIndex >= Questions.Count)
         {
-            Defeated = CorrectAnswers >= RequiredCorrectAnswers;
+            int required = Questions.Count == 3 ? 2 : 3;
+            Defeated = CorrectAnswers >= required;
             return true;
         }
 

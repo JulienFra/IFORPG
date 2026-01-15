@@ -211,7 +211,7 @@ else
                                 </button>
                             }
                         </div>
-                        <p><small>Réponses correctes : @state.CurrentBoss.CorrectAnswers / 4 requis</small></p>
+                        <p><small>Réponses correctes : @state.CurrentBoss.CorrectAnswers / @(state.CurrentBoss.Questions.Count == 3 ? 2 : 3) requis</small></p>
                     }
                 </div>
             }
