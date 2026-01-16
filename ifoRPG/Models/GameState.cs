@@ -18,6 +18,8 @@ namespace ifoRPG.Models
         public (int x, int y) ExitDoorInRoom { get; set; }
         public bool ChatGPTPicked { get; set; } = false;
         public (int x, int y) ChatGPTPosition => (8, 1);
+        public bool DurumPicked { get; set; } = false;
+        public (int x, int y) DurumPosition => (8, 1);
 
         public Dictionary<int, bool[]> FloorsProgress { get; set; } = new()
         {
@@ -333,6 +335,15 @@ namespace ifoRPG.Models
             {
                 Player.Inventory.UseChatGPT();
                 CurrentBoss.ForceDefeat();
+            }
+        }
+
+        public void TryPickupDurum()
+        {
+            if (!DurumPicked)
+            {
+                Player.Inventory.Add(new DurumItem());
+                DurumPicked = true;
             }
         }
     }

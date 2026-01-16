@@ -20,4 +20,14 @@ public class Inventory
         if (item != null)
             Items.Remove(item);
     }
+
+    public bool HasDurum()
+    {
+        return Items.Any(i => i is DurumItem);
+    }
+
+    public DurumItem? GetDurum()
+    {
+        return Items.FirstOrDefault(i => i is DurumItem) as DurumItem;
+    }
 }

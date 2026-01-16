@@ -62,7 +62,18 @@ else
             {
                 @foreach (var item in player.Inventory.Items)
                 {
-                    <p>📦 @item.Name</p>
+                    @if (item is ChatGPTItem)
+                    {
+                        <p>🤖 @item.Name</p>
+                    }
+                    else if (item is DurumItem)
+                    {
+                        <p>🌯 @item.Name</p>
+                    }
+                    else
+                    {
+                        <p>📦 @item.Name</p>
+                    }
                 }
             }
         </div>
@@ -198,19 +209,33 @@ else
                         </div>
                     }
                     else if (state.CurrentBoss.CurrentQuestion != null)
-                    {
-                        <p><b>Question @(state.CurrentBoss.CurrentQuestionIndex + 1) / @state.CurrentBoss.Questions.Count</b></p>
-                        <p>@state.CurrentBoss.CurrentQuestion.Text</p>
+                {
+                    <p><b>Question @(state.CurrentBoss.CurrentQuestionIndex + 1) / @state.CurrentBoss.Questions.Count</b></p>
+                    <p>@state.CurrentBoss.CurrentQuestion.Text</p>
 
-                        <div class="answers-grid">
-                            @for (int i = 0; i < state.CurrentBoss.CurrentQuestion.Answers.Count; i++)
+                    @if (player.Inventory.HasDurum())
+                    {
+                        var durum = player.Inventory.GetDurum();
+                        if (durum != null && durum.CanUseHint())
+                        {
+                            <button class="btn-primary" @onclick="UseDurum">
+                                🌯 Utiliser Durum (@durum.HintsRemaining hints restants)
+                            </button>
+                        }
+                    }
+
+                    <div class="answers-grid">
+                        @for (int i = 0; i < state.CurrentBoss.CurrentQuestion.Answers.Count; i++)
+                        {
+                            int index = i;
+                            if (!state.CurrentBoss.HiddenAnswers.Contains(index))
                             {
-                                int index = i;
                                 <button class="btn-answer" @onclick="() => AnswerBoss(index)">
                                     @state.CurrentBoss.CurrentQuestion.Answers[index]
                                 </button>
                             }
-                        </div>
+                        }
+                    </div>
                         <p><small>Réponses correctes : @state.CurrentBoss.CorrectAnswers / @(state.CurrentBoss.Questions.Count == 3 ? 2 : 3) requis</small></p>
                     }
                 </div>
@@ -425,7 +450,11 @@ else
             state.TryPickupChatGPT();
             StateHasChanged();
         }
-
+        if (state.InCorridor && state.CurrentFloor == 2 && !state.DurumPicked && player.X == 8 && player.Y == 1)
+        {
+            state.TryPickupDurum();
+            StateHasChanged();
+        }
         if (state.InCorridor)
         {
             bool[] currentFloorProgress = state.FloorsProgress[state.CurrentFloor];
@@ -489,7 +518,22 @@ else
         state.UseChatGPTOnBoss();
         state.HandleBossDefeat(true);
     }
-
+    void UseDurum()
+{
+    var durum = player.Inventory.GetDurum();
+    if (durum != null && durum.CanUseHint() && state.CurrentBoss?.CurrentQuestion != null)
+    {
+        durum.UseHint();
+        state.CurrentBoss.HideWrongAnswer();
+        
+        if (durum.HintsRemaining == 0)
+        {
+            player.Inventory.Items.Remove(durum);
+        }
+        
+        StateHasChanged();
+    }
+}
     void RestartGame()
     {
         state = new GameState();
