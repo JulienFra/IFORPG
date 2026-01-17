@@ -4,201 +4,431 @@
 
 <h3>ifoRPG</h3>
 
-<div class="game-layout">
-
-    <div class="left-panel">
-        <p><b>Inventaire</b></p>
-        @if (!player.Inventory.Items.Any())
-        {
-            <p>(vide)</p>
-        }
-        else
-        {
-            @foreach (var item in player.Inventory.Items)
-            {
-                <p>📦 @item.Name</p>
-            }
-        }
+@* ÉCRAN DE SÉLECTION DE CLASSE *@
+@if (!classSelected)
+{
+    <div class="class-selection">
+        <h2>Choisissez votre classe</h2>
+        <div class="class-options">
+            <button class="class-button" @onclick='() => SelectClass("Developer")'>
+                <h3>🖥️ Développeur</h3>
+                <p>Fort en POO et JavaScript</p>
+            </button>
+            
+            <button class="class-button" @onclick='() => SelectClass("DataAnalyst")'>
+                <h3>📊 Data Analyst</h3>
+                <p>Fort en SGBD et SQL</p>
+            </button>
+            
+            <button class="class-button" @onclick='() => SelectClass("NetworkEngineer")'>
+                <h3>🌐 Network Engineer</h3>
+                <p>Fort en Réseaux et Analyse</p>
+            </button>
+        </div>
     </div>
+}
+@* ÉCRAN DE SÉLECTION D'AVATAR *@
+else if (!avatarSelected)
+{
+    <div class="character-selection">
+        <h2>Choisissez votre avatar</h2>
+        <div class="avatar-options">
+            <button class="avatar-button @(selectedAvatar == "male" ? "selected" : "")" @onclick='() => selectedAvatar = "male"'>
+                <div class="avatar-preview male"></div>
+                <p>Étudiant</p>
+                @if (selectedAvatar == "male") { <span class="checkmark">✅</span> }
+            </button>
+            <button class="avatar-button @(selectedAvatar == "female" ? "selected" : "")" @onclick='() => selectedAvatar = "female"'>
+                <div class="avatar-preview female"></div>
+                <p>Étudiante</p>
+                @if (selectedAvatar == "female") { <span class="checkmark">✅</span> }
+            </button>
+        </div>
+        <button class="start-button" @onclick="StartGame" disabled="@(string.IsNullOrEmpty(selectedAvatar))">Commencer l'aventure</button>
+    </div>
+}
+@* JEU PRINCIPAL *@
+else
+{
+    <div class="game-layout">
 
-    <div class="center-panel">
-        <div class="map" tabindex="0" @onkeydown="HandleKey" @ref="gameDiv">
-
-            @for (int y = 0; y < map.Height; y++)
+        <div class="left-panel">
+            <p><b>Inventaire</b></p>
+            @if (!player.Inventory.Items.Any())
             {
-                <div class="row">
-                    @for (int x = 0; x < map.Width; x++)
+                <p>(vide)</p>
+            }
+            else
+            {
+                @foreach (var item in player.Inventory.Items)
+                {
+                    @if (item is ChatGPTItem)
                     {
-                        @* 1. INITIALISATION DES CLASSES *@
-                        string tileClass = "floor";
-                        string rotationClass = "";
-
-                        @* 2. LOGIQUE DES TUILES DE DÉCOR *@
-                        if (!state.InCorridor && map.Tiles[x, y].Type == TileType.PC)
-                        {
-                            tileClass = "tile-pc";
-                            if (x == 7 && (y == 4 || y == 5 || y == 6)) { rotationClass = "right"; }
-                            else if (y == 3 && x >= 1 && x <= 7) { rotationClass = "up"; }
-                        }
-                        else if ((state.InCorridor && (x == 2 || x == 5 || x == 8) && y == 4) ||
-                        (!state.InCorridor && x == 0 && y == 5))
-                        {
-                            tileClass = "tile-door";
-                        }
-                        else if (!state.InCorridor && map.Tiles[x, y].Type == TileType.Window)
-                        {
-                            tileClass = "tile-window";
-                        }
-                        else if (map.Tiles[x, y].Type == TileType.Flower)
-                        {
-                            tileClass = "tile-flower";
-                        }
-                        else if (state.InCorridor && x == map.StairsX && y == map.StairsY)
-                        {
-                            if (state.CurrentFloor < 2)
-                            {
-                                tileClass = state.FloorsProgress[state.CurrentFloor].All(r => r)
-                                ? "tile-stairs"
-                                : "tile-no-entry";
-                            }
-                            else if (state.CurrentFloor == 2)
-                            {
-                                tileClass = state.FloorsProgress[state.CurrentFloor].All(r => r) ? "tile-stairs" : "floor";
-                            }
-                        }
-                        else if (state.InCorridor && state.CurrentFloor > 1 && x == 0 && y == 0)
-                        {
-                            tileClass = "tile-stairs";
-                        }
-
-                        @* 3. RENDU DE LA CASE *@
-                        <div class="tile @tileClass @rotationClass">
-                            @if (player.X == x && player.Y == y)
-                            {
-                                @* L'avatar s'adapte grâce à la classe dynamique *@
-                                <div class="player @player.Avatar"></div>
-                            }
-                            else if (!state.InCorridor && !state.FloorsProgress[state.CurrentFloor][state.CurrentRoomIndex]
-                            && x == map.BossX && y == map.BossY)
-                            {
-                                if (state.CurrentFloor == 1 && state.CurrentRoomIndex == 0) { <div class="boss-jeremy"></div> }
-                                else if (state.CurrentFloor == 1 && state.CurrentRoomIndex == 1) { <div class="boss-cedric"></div> }
-                                else if (state.CurrentFloor == 1 && state.CurrentRoomIndex == 2) { <div class="boss-bernair"></div> }
-                                else if (state.CurrentFloor == 2 && state.CurrentRoomIndex == 0) { <div class="boss-six"></div> }
-                                else if (state.CurrentFloor == 2 && state.CurrentRoomIndex == 1) { <div class="boss-martin"></div> }
-                                else if (state.CurrentFloor == 2 && state.CurrentRoomIndex == 2) { <div class="boss-christophe"></div> }
-                                else { <span class="boss-icon">👹</span> }
-                            }
-                            else if (!state.InCorridor && map.Tiles[x, y].Type == TileType.Board)
-                            {
-                                <span class="boss-icon">👨‍🏫</span>
-                            }
-                        </div>
+                        <p>🤖 @item.Name</p>
                     }
-                </div>
+                    else if (item is DurumItem)
+                    {
+                        <p>🌯 @item.Name</p>
+                    }
+                    else
+                    {
+                        <p>📦 @item.Name</p>
+                    }
+                }
             }
         </div>
-    </div>
 
-    @if (gameWon)
-    {
-        <div class="victory-overlay">
-            <div class="victory-card">
-                <h1>🎓 DIPLÔME OBTENU !</h1>
-                <p>Félicitations ! Tu as vaincu tous les professeurs de l'IFOSUP.</p>
-                <p>Tu es maintenant un développeur certifié.</p>
-                <button class="btn-restart" @onclick="RestartGame">Recommencer</button>
-            </div>
-        </div>
-    }
+        <div class="center-panel">
+            <div class="map" tabindex="0" @onkeydown="HandleKey" @ref="gameDiv">
 
-    <div class="right-panel">
-        <div class="quest-book">
-            <p><b>Quest Book</b></p>
-            <p>Étage @state.CurrentFloor</p>
-            <ul>
-                @for (int i = 0; i < 3; i++)
+                @for (int y = 0; y < map.Height; y++)
                 {
-                    <li>
-                        Salle @(i + 1) :
-                        @(state.FloorsProgress[state.CurrentFloor][i] ? "✅" : "❌")
-                    </li>
-                }
-            </ul>
-        </div>
+                    <div class="row">
+                        @for (int x = 0; x < map.Width; x++)
+                        {
+                            @* 1. INITIALISATION DES CLASSES *@
+                            string tileClass = "floor";
+                            string rotationClass = "";
 
-        @if (!state.InCorridor && state.ShowBoss && state.CurrentBoss != null)
-        {
-            <div class="boss">
-                @if (player.Inventory.HasChatGPT())
-                {
-                    <button class="btn-primary" @onclick="UseChatGPT">
-                        🤖 Utiliser ChatGPT (réussite automatique)
-                    </button>
-                }
-                <h3>👨‍🏫 @state.CurrentBoss.Name</h3>
+                            @* 2. LOGIQUE DES TUILES DE DÉCOR *@
+                            if (!state.InCorridor && map.Tiles[x, y].Type == TileType.PC)
+                            {
+                                tileClass = "tile-pc";
+                                if (x == 7 && (y == 4 || y == 5 || y == 6)) { rotationClass = "right"; }
+                                else if (y == 3 && x >= 1 && x <= 7) { rotationClass = "up"; }
+                            }
+                            else if ((state.InCorridor && (x == 2 || x == 5 || x == 8) && y == 4) ||
+                            (!state.InCorridor && x == 0 && y == 5))
+                            {
+                                tileClass = "tile-door";
+                            }
+                            else if (!state.InCorridor && map.Tiles[x, y].Type == TileType.Window)
+                            {
+                                tileClass = "tile-window";
+                            }
+                            else if (map.Tiles[x, y].Type == TileType.Flower)
+                            {
+                                tileClass = "tile-flower";
+                            }
+                            else if (state.InCorridor && x == map.StairsX && y == map.StairsY)
+                            {
+                                if (state.CurrentFloor < 2)
+                                {
+                                    tileClass = state.FloorsProgress[state.CurrentFloor].All(r => r)
+                                    ? "tile-stairs"
+                                    : "tile-no-entry";
+                                }
+                                else if (state.CurrentFloor == 2)
+                                {
+                                    tileClass = state.FloorsProgress[state.CurrentFloor].All(r => r) ? "tile-stairs" : "floor";
+                                }
+                            }
+                            else if (state.InCorridor && state.CurrentFloor > 1 && x == 0 && y == 0)
+                            {
+                                tileClass = "tile-stairs";
+                            }
 
-                @if (!state.IntroductionRead)
-                {
-                    <div class="boss-intro">
-                        @if (state.CurrentBoss.Name == "Monsieur Kairis") { <p><i>"Je suis Jeremy, un prof redoutable. Pour passer à la salle suivante, tu vas devoir prouver ta maîtrise de la POO !"</i></p> }
-                        else if (state.CurrentBoss.Name == "Cédric") { <p><i>"Bonjour ! Vérifie tes câbles et ton masque de sous-réseau. Si ton paquet n'arrive pas à destination, tu ne passeras pas l'examen !"</i></p> }
-                        else if (state.CurrentBoss.Name == "Monsieur Bernair") { <p><i>"Sortez vos feuilles, nous allons analyser la structure de votre projet. Pas d'implémentation sans une bonne modélisation !"</i></p> }
-                        else if (state.CurrentBoss.Name == "Monsieur Six") { <p><i>"Bonjour. J'espère que vos index sont bien posés et vos requêtes optimisées. Prêt pour un petit SELECT ?"</i></p> }
-                        else if (state.CurrentBoss.Name == "Monsieur Martin") { <p><i>"Une base de données sans requêtes propres n'est qu'un tas de fichiers. Montrez-moi que vous maîtrisez le langage SQL !"</i></p> }
-                        else if (state.CurrentBoss.Name == "Christophe") { <p><i>"Salut ! J'espère que vous avez révisé vos callbacks et que votre code n'est pas trop bloquant. Prêt à rendre cette page interactive ?"</i></p> }
-                        else { <p><i>"Préparez-vous pour l'examen..."</i></p> }
-                        <button class="btn-primary" @onclick="() => state.IntroductionRead = true">Commencer l'examen</button>
+                            @* 3. RENDU DE LA CASE *@
+                            <div class="tile @tileClass @rotationClass">
+                                @if (player.X == x && player.Y == y)
+                                {
+                                    @* L'avatar s'adapte grâce à la classe dynamique *@
+                                    <div class="player @player.Avatar"></div>
+                                }
+                                else if (!state.InCorridor && !state.FloorsProgress[state.CurrentFloor][state.CurrentRoomIndex]
+                                && x == map.BossX && y == map.BossY)
+                                {
+                                    if (state.CurrentFloor == 1 && state.CurrentRoomIndex == 0) { <div class="boss-jeremy"></div> }
+                                    else if (state.CurrentFloor == 1 && state.CurrentRoomIndex == 1) { <div class="boss-cedric"></div> }
+                                    else if (state.CurrentFloor == 1 && state.CurrentRoomIndex == 2) { <div class="boss-bernair"></div> }
+                                    else if (state.CurrentFloor == 2 && state.CurrentRoomIndex == 0) { <div class="boss-six"></div> }
+                                    else if (state.CurrentFloor == 2 && state.CurrentRoomIndex == 1) { <div class="boss-martin"></div> }
+                                    else if (state.CurrentFloor == 2 && state.CurrentRoomIndex == 2) { <div class="boss-christophe"></div> }
+                                    else { <span class="boss-icon">👹</span> }
+                                }
+                                else if (!state.InCorridor && map.Tiles[x, y].Type == TileType.Board)
+                                {
+                                    <span class="boss-icon">👨‍🏫</span>
+                                }
+                            </div>
+                        }
                     </div>
                 }
-                else if (state.CurrentBoss.CurrentQuestion != null)
+            </div>
+        </div>
+
+        @if (gameWon)
+        {
+            <div class="victory-overlay">
+                <div class="victory-card">
+                    <h1>🎓 DIPLÔME OBTENU !</h1>
+                    <p>Félicitations ! Tu as vaincu tous les professeurs de l'IFOSUP.</p>
+                    <p>Tu es maintenant un développeur certifié.</p>
+                    <button class="btn-restart" @onclick="RestartGame">Recommencer</button>
+                </div>
+            </div>
+        }
+
+        <div class="right-panel">
+            <div class="quest-book">
+                <p><b>Quest Book</b></p>
+                <p>Étage @state.CurrentFloor</p>
+                <ul>
+                    @for (int i = 0; i < 3; i++)
+                    {
+                        <li>
+                            Salle @(i + 1) :
+                            @(state.FloorsProgress[state.CurrentFloor][i] ? "✅" : "❌")
+                        </li>
+                    }
+                </ul>
+            </div>
+
+            @if (!state.InCorridor && state.ShowBoss && state.CurrentBoss != null)
+            {
+                <div class="boss">
+                    @if (player.Inventory.HasChatGPT())
+                    {
+                        <button class="btn-primary" @onclick="UseChatGPT">
+                            🤖 Utiliser ChatGPT (réussite automatique)
+                        </button>
+                    }
+                    <h3>👨‍🏫 @state.CurrentBoss.Name</h3>
+
+                    @if (!state.IntroductionRead)
+                    {
+                        <div class="boss-intro">
+                            @if (state.CurrentBoss.Name == "Monsieur Kairis") { <p><i>"Je suis Jeremy, un prof redoutable. Pour passer à la salle suivante, tu vas devoir prouver ta maîtrise de la POO !"</i></p> }
+                            else if (state.CurrentBoss.Name == "Cédric") { <p><i>"Bonjour ! Vérifie tes câbles et ton masque de sous-réseau. Si ton paquet n'arrive pas à destination, tu ne passeras pas l'examen !"</i></p> }
+                            else if (state.CurrentBoss.Name == "Monsieur Bernair") { <p><i>"Sortez vos feuilles, nous allons analyser la structure de votre projet. Pas d'implémentation sans une bonne modélisation !"</i></p> }
+                            else if (state.CurrentBoss.Name == "Monsieur Six") { <p><i>"Bonjour. J'espère que vos index sont bien posés et vos requêtes optimisées. Prêt pour un petit SELECT ?"</i></p> }
+                            else if (state.CurrentBoss.Name == "Monsieur Martin") { <p><i>"Une base de données sans requêtes propres n'est qu'un tas de fichiers. Montrez-moi que vous maîtrisez le langage SQL !"</i></p> }
+                            else if (state.CurrentBoss.Name == "Christophe") { <p><i>"Salut ! J'espère que vous avez révisé vos callbacks et que votre code n'est pas trop bloquant. Prêt à rendre cette page interactive ?"</i></p> }
+                            else { <p><i>"Préparez-vous pour l'examen..."</i></p> }
+                            <button class="btn-primary" @onclick="() => state.IntroductionRead = true">Commencer l'examen</button>
+                        </div>
+                    }
+                    else if (state.CurrentBoss.CurrentQuestion != null)
                 {
                     <p><b>Question @(state.CurrentBoss.CurrentQuestionIndex + 1) / @state.CurrentBoss.Questions.Count</b></p>
                     <p>@state.CurrentBoss.CurrentQuestion.Text</p>
+
+                    @if (player.Inventory.HasDurum())
+                    {
+                        var durum = player.Inventory.GetDurum();
+                        if (durum != null && durum.CanUseHint())
+                        {
+                            <button class="btn-primary" @onclick="UseDurum">
+                                🌯 Utiliser Durum (@durum.HintsRemaining hints restants)
+                            </button>
+                        }
+                    }
 
                     <div class="answers-grid">
                         @for (int i = 0; i < state.CurrentBoss.CurrentQuestion.Answers.Count; i++)
                         {
                             int index = i;
-                            <button class="btn-answer" @onclick="() => AnswerBoss(index)">
-                                @state.CurrentBoss.CurrentQuestion.Answers[index]
-                            </button>
+                            if (!state.CurrentBoss.HiddenAnswers.Contains(index))
+                            {
+                                <button class="btn-answer" @onclick="() => AnswerBoss(index)">
+                                    @state.CurrentBoss.CurrentQuestion.Answers[index]
+                                </button>
+                            }
                         }
                     </div>
-                    <p><small>Réponses correctes : @state.CurrentBoss.CorrectAnswers / 4 requis</small></p>
-                }
-            </div>
-        }
+                        <p><small>Réponses correctes : @state.CurrentBoss.CorrectAnswers / @(state.CurrentBoss.Questions.Count == 3 ? 2 : 3) requis</small></p>
+                    }
+                </div>
+            }
+        </div>
     </div>
-</div>
+}
+
+<style>
+   
+    .class-selection {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: rgba(0, 0, 0, 0.95);
+        padding: 40px;
+        border-radius: 15px;
+        text-align: center;
+        z-index: 1000;
+        border: 2px solid #4a90e2;
+    }
+
+    .class-selection h2 {
+        color: white;
+        margin-bottom: 30px;
+        font-size: 32px;
+    }
+
+    .class-options {
+        display: flex;
+        gap: 20px;
+        justify-content: center;
+    }
+
+    .class-button {
+        background-color: rgba(255, 255, 255, 0.1);
+        border: 2px solid white;
+        padding: 30px 20px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.3s;
+        color: white;
+        min-width: 180px;
+    }
+
+    .class-button:hover {
+        background-color: rgba(74, 144, 226, 0.3);
+        border-color: #4a90e2;
+        transform: scale(1.05);
+    }
+
+    .class-button h3 {
+        margin: 0 0 15px 0;
+        font-size: 28px;
+    }
+
+    .class-button p {
+        margin: 0;
+        font-size: 14px;
+        color: #ccc;
+        line-height: 1.4;
+    }
+
+    /* NOUVEAUX STYLES - Sélection d'avatar */
+    .character-selection {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: rgba(0, 0, 0, 0.95);
+        padding: 40px;
+        border-radius: 15px;
+        text-align: center;
+        z-index: 1000;
+        border: 2px solid #4a90e2;
+    }
+
+    .character-selection h2 {
+        color: white;
+        margin-bottom: 30px;
+        font-size: 32px;
+    }
+
+    .avatar-options {
+        display: flex;
+        gap: 30px;
+        justify-content: center;
+        margin-bottom: 30px;
+    }
+
+    .avatar-button {
+        position: relative;
+        background-color: rgba(255, 255, 255, 0.1);
+        border: 2px solid white;
+        padding: 20px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.3s;
+        color: white;
+    }
+
+    .avatar-button:hover {
+        background-color: rgba(74, 144, 226, 0.3);
+        border-color: #4a90e2;
+        transform: scale(1.05);
+    }
+
+    .avatar-button.selected {
+        border-color: #4a90e2;
+        background-color: rgba(74, 144, 226, 0.2);
+    }
+
+    .checkmark {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        font-size: 24px;
+    }
+
+    .avatar-preview {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 15px;
+        border-radius: 50%;
+        background-size: cover;
+        background-position: center;
+        image-rendering: pixelated;
+    }
+
+    .avatar-preview.male {
+        background-image: url('images/player_male.png');
+    }
+
+    .avatar-preview.female {
+        background-image: url('images/player_female.png');
+    }
+
+    .start-button {
+        background-color: #4a90e2;
+        color: white;
+        border: none;
+        padding: 15px 40px;
+        font-size: 18px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .start-button:hover {
+        background-color: #3a7bc8;
+        transform: scale(1.05);
+    }
+
+    .start-button:disabled {
+        background-color: #666;
+        cursor: not-allowed;
+        transform: none;
+    }
+</style>
 
 @code {
     GameState state = new GameState();
     ElementReference gameDiv;
     bool gameWon = false;
+    
+    private bool classSelected = false;
+    private bool avatarSelected = false;
+    private string selectedAvatar = "";
 
     private Player player => state.Player;
     private Map map => state.CurrentMap;
 
-    protected override void OnInitialized()
-{
-    // On récupère l'URL complète (ex: http://localhost:5000/game?avatar=female)
-    var uri = NavManager.Uri;
-
-    if (uri.Contains("avatar=female"))
-    {
-        state.Player.Avatar = "female";
-    }
-    else
-    {
-        state.Player.Avatar = "male"; // Par défaut
-    }
-}
-
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
+        if (firstRender && avatarSelected)
             await gameDiv.FocusAsync();
+    }
+
+    private void SelectClass(string playerClass)
+    {
+        state.Player.Class = playerClass;
+        classSelected = true;
+    }
+
+    private async Task StartGame()
+    {
+        if (!string.IsNullOrEmpty(selectedAvatar))
+        {
+            state.Player.Avatar = selectedAvatar;
+            avatarSelected = true;
+            await gameDiv.FocusAsync();
+        }
     }
 
     void HandleKey(KeyboardEventArgs e)
@@ -220,7 +450,11 @@
             state.TryPickupChatGPT();
             StateHasChanged();
         }
-
+        if (state.InCorridor && state.CurrentFloor == 2 && !state.DurumPicked && player.X == 8 && player.Y == 1)
+        {
+            state.TryPickupDurum();
+            StateHasChanged();
+        }
         if (state.InCorridor)
         {
             bool[] currentFloorProgress = state.FloorsProgress[state.CurrentFloor];
@@ -284,10 +518,28 @@
         state.UseChatGPTOnBoss();
         state.HandleBossDefeat(true);
     }
-
+    void UseDurum()
+{
+    var durum = player.Inventory.GetDurum();
+    if (durum != null && durum.CanUseHint() && state.CurrentBoss?.CurrentQuestion != null)
+    {
+        durum.UseHint();
+        state.CurrentBoss.HideWrongAnswer();
+        
+        if (durum.HintsRemaining == 0)
+        {
+            player.Inventory.Items.Remove(durum);
+        }
+        
+        StateHasChanged();
+    }
+}
     void RestartGame()
     {
         state = new GameState();
+        classSelected = false;
+        avatarSelected = false;
+        selectedAvatar = "";
         gameWon = false;
         StateHasChanged();
     }
