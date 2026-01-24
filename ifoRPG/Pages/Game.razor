@@ -1,5 +1,6 @@
 @page "/game"
 @using ifoRPG.Models
+@inject IJSRuntime JS
 @inject NavigationManager NavManager
 
 <h3>ifoRPG</h3>
@@ -408,6 +409,52 @@ else
 
     private Player player => state.Player;
     private Map map => state.CurrentMap;
+    protected override async Task OnInitializedAsync()
+{
+    await LoadGame();
+}
+
+private async Task SaveGame()
+{
+    var saveData = new
+    {
+        CurrentFloor = state.CurrentFloor,
+        FloorsProgress1 = state.FloorsProgress[1],
+        FloorsProgress2 = state.FloorsProgress[2],
+        PlayerClass = state.Player.Class,
+        PlayerAvatar = state.Player.Avatar,
+        ChatGPTPicked = state.ChatGPTPicked,
+        DurumPicked = state.DurumPicked,
+        ClassSelected = classSelected,
+        AvatarSelected = avatarSelected
+    };
+    
+    string json = System.Text.Json.JsonSerializer.Serialize(saveData);
+    await JS.InvokeVoidAsync("localStorage.setItem", "ifoRPG_save", json);
+}
+
+private async Task LoadGame()
+{
+    var json = await JS.InvokeAsync<string>("localStorage.getItem", "ifoRPG_save");
+    if (!string.IsNullOrEmpty(json))
+    {
+        using var doc = System.Text.Json.JsonDocument.Parse(json);
+        var root = doc.RootElement;
+        
+        state.CurrentFloor = root.GetProperty("CurrentFloor").GetInt32();
+        state.FloorsProgress[1] = System.Text.Json.JsonSerializer.Deserialize<bool[]>(root.GetProperty("FloorsProgress1"));
+        state.FloorsProgress[2] = System.Text.Json.JsonSerializer.Deserialize<bool[]>(root.GetProperty("FloorsProgress2"));
+        state.Player.Class = root.GetProperty("PlayerClass").GetString();
+        state.Player.Avatar = root.GetProperty("PlayerAvatar").GetString();
+        state.ChatGPTPicked = root.GetProperty("ChatGPTPicked").GetBoolean();
+        state.DurumPicked = root.GetProperty("DurumPicked").GetBoolean();
+        classSelected = root.GetProperty("ClassSelected").GetBoolean();
+        avatarSelected = root.GetProperty("AvatarSelected").GetBoolean();
+        selectedAvatar = state.Player.Avatar;
+        
+        state.CurrentMap = new Map(10, 10, state.CurrentFloor, -1, true);
+    }
+}
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -431,8 +478,8 @@ else
         }
     }
 
-    void HandleKey(KeyboardEventArgs e)
-    {
+    async Task HandleKey(KeyboardEventArgs e)
+{
         switch (e.Key)
         {
             case "z": case "ArrowUp": player.Move(0, -1, map); break;
@@ -440,78 +487,85 @@ else
             case "q": case "ArrowLeft": player.Move(-1, 0, map); break;
             case "d": case "ArrowRight": player.Move(1, 0, map); break;
         }
-        CheckEvents();
-    }
+        await CheckEvents();
+}
 
-    void CheckEvents()
+    async Task CheckEvents()
+{
+    if (state.InCorridor && !state.ChatGPTPicked && player.X == map.Width - 1 && player.Y == 0)
     {
-        if (state.InCorridor && !state.ChatGPTPicked && player.X == map.Width - 1 && player.Y == 0)
+        state.TryPickupChatGPT();
+        await SaveGame();
+        StateHasChanged();
+    }
+    if (state.InCorridor && state.CurrentFloor == 2 && !state.DurumPicked && player.X == 8 && player.Y == 1)
+    {
+        state.TryPickupDurum();
+        await SaveGame();
+        StateHasChanged();
+    }
+    if (state.InCorridor)
+    {
+        bool[] currentFloorProgress = state.FloorsProgress[state.CurrentFloor];
+        bool allDone = currentFloorProgress.All(r => r);
+
+        if (player.X == map.StairsX && player.Y == map.StairsY && allDone)
         {
-            state.TryPickupChatGPT();
+            if (state.CurrentFloor == 2)
+            {
+                gameWon = true;
+                StateHasChanged();
+            }
+            else if (state.CurrentFloor < 2)
+            {
+                state.GoUp();
+                await SaveGame();
+                StateHasChanged();
+            }
+        }
+        else if (state.CurrentFloor > 1 && player.X == 0 && player.Y == 0)
+        {
+            state.GoDown();
             StateHasChanged();
         }
-        if (state.InCorridor && state.CurrentFloor == 2 && !state.DurumPicked && player.X == 8 && player.Y == 1)
+
+        int[] doorX = { 2, 5, 8 };
+        for (int i = 0; i < doorX.Length; i++)
         {
-            state.TryPickupDurum();
+            if (player.X == doorX[i] && player.Y == 4)
+            {
+                state.EnterRoom(i);
+                StateHasChanged();
+            }
+        }
+    }
+    else
+    {
+        if (player.X == 0 && player.Y == 5)
+        {
+            state.ReturnToCorridor();
             StateHasChanged();
         }
-        if (state.InCorridor)
+
+        if (!state.FloorsProgress[state.CurrentFloor][state.CurrentRoomIndex] &&
+            player.X == map.BossX && player.Y == map.BossY)
         {
-            bool[] currentFloorProgress = state.FloorsProgress[state.CurrentFloor];
-            bool allDone = currentFloorProgress.All(r => r);
-
-            if (player.X == map.StairsX && player.Y == map.StairsY && allDone)
-            {
-                if (state.CurrentFloor == 2)
-                {
-                    gameWon = true;
-                    StateHasChanged();
-                }
-                else if (state.CurrentFloor < 2)
-                {
-                    state.GoUp();
-                    StateHasChanged();
-                }
-            }
-            else if (state.CurrentFloor > 1 && player.X == 0 && player.Y == 0)
-            {
-                state.GoDown();
-                StateHasChanged();
-            }
-
-            int[] doorX = { 2, 5, 8 };
-            for (int i = 0; i < doorX.Length; i++)
-            {
-                if (player.X == doorX[i] && player.Y == 4)
-                {
-                    state.EnterRoom(i);
-                    StateHasChanged();
-                }
-            }
-        }
-        else
-        {
-            if (player.X == 0 && player.Y == 5)
-            {
-                state.ReturnToCorridor();
-                StateHasChanged();
-            }
-
-            if (!state.FloorsProgress[state.CurrentFloor][state.CurrentRoomIndex] &&
-                player.X == map.BossX && player.Y == map.BossY)
-            {
-                state.ShowBoss = true;
-                StateHasChanged();
-            }
+            state.ShowBoss = true;
+            StateHasChanged();
         }
     }
+}
 
-    void AnswerBoss(int index)
+    async Task AnswerBoss(int index)
+{
+    if (state.CurrentBoss == null) return;
+    bool finished = state.CurrentBoss.Answer(index);
+    if (finished)
     {
-        if (state.CurrentBoss == null) return;
-        bool finished = state.CurrentBoss.Answer(index);
-        if (finished) state.HandleBossDefeat(state.CurrentBoss.Defeated);
+        state.HandleBossDefeat(state.CurrentBoss.Defeated);
+        if (state.CurrentBoss.Defeated) await SaveGame();
     }
+}
 
     void UseChatGPT()
     {
@@ -534,13 +588,14 @@ else
         StateHasChanged();
     }
 }
-    void RestartGame()
-    {
-        state = new GameState();
-        classSelected = false;
-        avatarSelected = false;
-        selectedAvatar = "";
-        gameWon = false;
-        StateHasChanged();
-    }
+    async Task RestartGame()
+{
+    await JS.InvokeVoidAsync("localStorage.removeItem", "ifoRPG_save");
+    state = new GameState();
+    classSelected = false;
+    avatarSelected = false;
+    selectedAvatar = "";
+    gameWon = false;
+    StateHasChanged();
+}
 }
